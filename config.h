@@ -29,11 +29,9 @@
 // Defines for different attacks
 // This attack is gonna send fake Throttle Position Sensor data, with a period corresponding to a fraction of the real node.
 // 3 modes : Fast which sends full speed all the time, slow which send 0 speed all the time, and OutOfBound which sends out of bound data to create an internal error.
-//#define ATTACK_FAKE_TPS_NODE
 #define ATTACK_FAKE_TPS_FREQUENCY (float)ECU_DATA2_PERIOD/(float)4
 #define ATTACK_FAKE_TPS_MODE Fast
 
 // This attack has for objective to DOS all lower priority messages. Most effective if Id = 1
-//#define ATTACK_DOS_NODE
 #define ATTACK_DOS_FREQUENCY 0.01f
 #define ATTACK_DOS_ID 1
