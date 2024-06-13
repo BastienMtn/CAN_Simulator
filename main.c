@@ -27,6 +27,7 @@ pthread_mutex_t m, dos_mut, flood_mut;
 pthread_cond_t c, dos_cond, flood_cond;
 bool dosOn = false, floodOn = false;
 static float acc_pedal = 0;
+GtkTextBuffer *buff;
 
 typedef enum
 {
@@ -34,6 +35,20 @@ typedef enum
     Slow,
     OutOfRange
 } tps_attack_mode;
+
+gboolean gui_print(char* msg, size_t size){
+    GtkTextIter end;
+    // Get the end iterator and insert text
+    gtk_text_buffer_get_end_iter(buff, &end);
+    gtk_text_buffer_insert(buff, &end, msg, size);
+}
+
+static void text_clear(GtkWidget *widget, gpointer data){
+    GtkTextIter start, end;
+    gtk_text_buffer_get_start_iter(buff, &start);
+    gtk_text_buffer_get_end_iter(buff, &end);
+    gtk_text_buffer_delete(buff,&start, &end);
+}
 
 static void dos_bttn_cllbck(GtkWidget *widget, gpointer data)
 {
@@ -58,6 +73,7 @@ static void flood_bttn_cllbck(GtkWidget *widget, gpointer data)
     if (floodOn)
     {
         pthread_cond_signal(&flood_cond);
+        gui_print("Flooding is On\n",15*sizeof(char));
         printf("Flooding is On\n");
     }
     else
@@ -67,14 +83,6 @@ static void flood_bttn_cllbck(GtkWidget *widget, gpointer data)
     pthread_mutex_unlock(&flood_mut);
 }
 
-static void text_clear(GtkWidget *widget, gpointer data){
-    GtkTextBuffer *buff = GTK_TEXT_BUFFER(data);
-    GtkTextIter *start, *end;
-    gtk_text_buffer_get_start_iter(buff, start);
-    gtk_text_buffer_get_end_iter(buff, end);
-    gtk_text_buffer_delete(buff,start, end);
-}
-
 static void activate(GtkApplication *app, gpointer user_data)
 {
     GtkWidget *window;
@@ -82,8 +90,6 @@ static void activate(GtkApplication *app, gpointer user_data)
     GtkWidget *button;
     GtkWidget *text_view;
     GtkWidget *scrolled_window;
-
-    GtkTextBuffer *buff;
 
     /* create a new window, and set its title */
     window = gtk_application_window_new(app);
@@ -137,7 +143,7 @@ static void activate(GtkApplication *app, gpointer user_data)
     gtk_grid_attach(GTK_GRID(grid), scrolled_window, 0, 1, 2, 2);
 
     button = gtk_button_new_with_label("Clear");
-    g_signal_connect(button, "clicked", G_CALLBACK(text_clear), buff);
+    g_signal_connect(button, "clicked", G_CALLBACK(text_clear), NULL);
 
     /* Place the Quit button in the grid cell (0, 1), and make it
      * span 2 columns.
