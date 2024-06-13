@@ -67,11 +67,23 @@ static void flood_bttn_cllbck(GtkWidget *widget, gpointer data)
     pthread_mutex_unlock(&flood_mut);
 }
 
+static void text_clear(GtkWidget *widget, gpointer data){
+    GtkTextBuffer *buff = GTK_TEXT_BUFFER(data);
+    GtkTextIter *start, *end;
+    gtk_text_buffer_get_start_iter(buff, start);
+    gtk_text_buffer_get_end_iter(buff, end);
+    gtk_text_buffer_delete(buff,start, end);
+}
+
 static void activate(GtkApplication *app, gpointer user_data)
 {
     GtkWidget *window;
     GtkWidget *grid;
     GtkWidget *button;
+    GtkWidget *text_view;
+    GtkWidget *scrolled_window;
+
+    GtkTextBuffer *buff;
 
     /* create a new window, and set its title */
     window = gtk_application_window_new(app);
@@ -99,13 +111,46 @@ static void activate(GtkApplication *app, gpointer user_data)
      */
     gtk_grid_attach(GTK_GRID(grid), button, 1, 0, 1, 1);
 
+    /* The text buffer represents the text being edited */
+    buff = gtk_text_buffer_new(NULL);
+
+    /* Text view is a widget in which can display the text buffer.
+     * The line wrapping is set to break lines in between words.
+     */
+    text_view = gtk_text_view_new_with_buffer(buff);
+    gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(text_view), GTK_WRAP_WORD);
+
+    /* Create the scrolled window. Usually NULL is passed for both parameters so
+     * that it creates the horizontal/vertical adjustments automatically. Setting
+     * the scrollbar policy to automatic allows the scrollbars to only show up
+     * when needed.
+     */
+    scrolled_window = gtk_scrolled_window_new();
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window),
+                                   GTK_POLICY_AUTOMATIC,
+                                   GTK_POLICY_AUTOMATIC);
+    
+    gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(scrolled_window), 800);
+    gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scrolled_window), 500);
+
+    gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scrolled_window), text_view);
+    gtk_grid_attach(GTK_GRID(grid), scrolled_window, 0, 1, 2, 2);
+
+    button = gtk_button_new_with_label("Clear");
+    g_signal_connect(button, "clicked", G_CALLBACK(text_clear), buff);
+
+    /* Place the Quit button in the grid cell (0, 1), and make it
+     * span 2 columns.
+     */
+    gtk_grid_attach(GTK_GRID(grid), button, 0, 3, 1, 1);
+
     button = gtk_button_new_with_label("Quit");
     g_signal_connect_swapped(button, "clicked", G_CALLBACK(gtk_window_destroy), window);
 
     /* Place the Quit button in the grid cell (0, 1), and make it
      * span 2 columns.
      */
-    gtk_grid_attach(GTK_GRID(grid), button, 0, 1, 2, 1);
+    gtk_grid_attach(GTK_GRID(grid), button, 1, 3, 1, 1);
 
     gtk_window_present(GTK_WINDOW(window));
 }
