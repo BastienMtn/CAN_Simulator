@@ -41,8 +41,11 @@ typedef enum
     OutOfRange
 } tps_attack_mode;
 
-gboolean gui_print(char* msg, size_t size){
+gboolean gui_print(gpointer data){
     // TODO : Find a way to print the messages wihtout using -1 which causes iterator errors
+    struct print_param* prmtrs = (struct print_param*)data;
+    char * msg = prmtrs->msg;
+    size_t size = prmtrs->size; 
     pthread_mutex_lock(&print_mut);
     GtkTextIter start, end;
     if(gtk_text_buffer_get_line_count(buff)>30){
@@ -92,7 +95,6 @@ static void flood_bttn_cllbck(GtkWidget *widget, gpointer data)
     if (floodOn)
     {
         pthread_cond_signal(&flood_cond);
-        gui_print("Flooding is On\n",15*sizeof(char));
         printf("Flooding is On\n");
     }
     else
@@ -205,6 +207,13 @@ TCAN_HANDLE can_init()
     if (status == CAN_ERR_OK)
     {
         printf("Opened CAN Channel with handle= %d and version : %s \n", handle, version);
+        char text[512];
+        snprintf(text, sizeof(text), "Opened CAN Channel with handle= %d and version : %s \n", handle, version);
+        struct print_param prmtrs;
+        prmtrs.msg = text;
+        prmtrs.size = strlen(text);
+        gpointer p = &prmtrs;
+        g_idle_add(gui_print, p);
     }
 
     return handle;
@@ -239,8 +248,10 @@ void *receive_routine(void *args)
             struct print_param prmtrs;
             prmtrs.msg = text;
             prmtrs.size = strlen(text);
-            //g_iddle_add(gui_print, prmtrs);
-            gui_print(text, strlen(text));
+            gpointer p = &prmtrs;
+
+            g_idle_add(gui_print, p);
+            //gui_print(text, strlen(text));
             //printf("\n");
             if (recvMSG.Id == 0x180)
             {
