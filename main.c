@@ -20,7 +20,6 @@
 
 // TODO - Add all other nodes
 // TODO - Add attack scenarios
-// TODO - Replace sleep by pthread_cond_wait
 
 struct print_param{
     char *msg;
@@ -312,6 +311,7 @@ void *sas_data_send_routine(void *args)
 {
     TCAN_HANDLE handle = *(TCAN_HANDLE *)args;
     CAN_MSG msg;
+    struct timespec ts;
 
     msg.Flags = CAN_FLAGS_STANDARD;
     msg.Id = 0x180;
@@ -332,7 +332,13 @@ void *sas_data_send_routine(void *args)
         pthread_mutex_unlock(&write_mut);
         if (status != CAN_ERR_OK)
             printf("error sending CAN frame \n");
-        sleep(SAS_DATA_PERIOD);
+        timespec_get(&ts, TIME_UTC);
+        ts.tv_sec += (int)SAS_DATA_PERIOD;
+        ts.tv_nsec += (SAS_DATA_PERIOD - (int)SAS_DATA_PERIOD) * 10000000000;
+        pthread_mutex_lock(&m);
+        pthread_cond_timedwait(&c, &m, &ts);
+        pthread_mutex_unlock(&m);
+        //sleep(SAS_DATA_PERIOD);
         sas_data_update(&angle, &speed);
     }
 
@@ -389,6 +395,7 @@ void *ecu_data1_send_routine(void *args)
 {
     TCAN_HANDLE handle = *(TCAN_HANDLE *)args;
     CAN_MSG msg;
+    struct timespec ts;
 
     msg.Flags = CAN_FLAGS_STANDARD;
     msg.Id = 0x1a0;
@@ -413,7 +420,13 @@ void *ecu_data1_send_routine(void *args)
         pthread_mutex_unlock(&write_mut);
         if (status != CAN_ERR_OK)
             printf("error sending CAN frame \n");
-        sleep(ECU_DATA1_PERIOD);
+        timespec_get(&ts, TIME_UTC);
+        ts.tv_sec += (int)ECU_DATA1_PERIOD;
+        ts.tv_nsec += (ECU_DATA1_PERIOD - (int)ECU_DATA1_PERIOD) * 10000000000;
+        pthread_mutex_lock(&m);
+        pthread_cond_timedwait(&c, &m, &ts);
+        pthread_mutex_unlock(&m);
+        //sleep(ECU_DATA1_PERIOD);
         ecu_data1_update(&rpm, &app, &torque_req, &torque_resp, &torque_lost);
     }
 
@@ -429,6 +442,7 @@ void *ecu_data2_send_routine(void *args)
 {
     TCAN_HANDLE handle = *(TCAN_HANDLE *)args;
     CAN_MSG msg;
+    struct timespec ts;
 
     msg.Flags = CAN_FLAGS_STANDARD;
     msg.Id = 0x1c0;
@@ -447,7 +461,13 @@ void *ecu_data2_send_routine(void *args)
         pthread_mutex_unlock(&write_mut);
         if (status != CAN_ERR_OK)
             printf("error sending CAN frame \n");
-        sleep(ECU_DATA2_PERIOD);
+        timespec_get(&ts, TIME_UTC);
+        ts.tv_sec += (int)ECU_DATA2_PERIOD;
+        ts.tv_nsec += (ECU_DATA2_PERIOD - (int)ECU_DATA2_PERIOD) * 10000000000;
+        pthread_mutex_lock(&m);
+        pthread_cond_timedwait(&c, &m, &ts);
+        pthread_mutex_unlock(&m);
+        //sleep(ECU_DATA2_PERIOD);
         ecu_data2_update(&pos);
     }
 
@@ -465,6 +485,7 @@ void *tcu_data1_send_routine(void *args)
 {
     TCAN_HANDLE handle = *(TCAN_HANDLE *)args;
     CAN_MSG msg;
+    struct timespec ts;
 
     msg.Flags = CAN_FLAGS_STANDARD;
     msg.Id = 0x110;
@@ -487,18 +508,32 @@ void *tcu_data1_send_routine(void *args)
         pthread_mutex_unlock(&write_mut);
         if (status != CAN_ERR_OK)
             printf("error sending CAN frame \n");
-        sleep(TCU_DATA1_PERIOD);
+        timespec_get(&ts, TIME_UTC);
+        ts.tv_sec += (int)TCU_DATA1_PERIOD;
+        ts.tv_nsec += (TCU_DATA1_PERIOD - (int)TCU_DATA1_PERIOD) * 10000000000;
+        pthread_mutex_lock(&m);
+        pthread_cond_timedwait(&c, &m, &ts);
+        pthread_mutex_unlock(&m);
+        //sleep(TCU_DATA1_PERIOD);
         tcu_data1_update(&torque, &oss);
     }
 
     return NULL;
 }
 
-// TODO - Add update for TCU DATA3
+// TODO - Make this more realistic
+void *tcu_data3_update(double *gear, double *selector, double* tcc_state)
+{
+    *gear++;
+    *selector++;
+    *tcc_state = (*tcc_state == 2) ? 0 : 2;
+}
+
 void *tcu_data3_send_routine(void *args)
 {
     TCAN_HANDLE handle = *(TCAN_HANDLE *)args;
     CAN_MSG msg;
+    struct timespec ts;
 
     msg.Flags = CAN_FLAGS_STANDARD;
     msg.Id = 0x3e0;
@@ -524,10 +559,14 @@ void *tcu_data3_send_routine(void *args)
         pthread_mutex_unlock(&write_mut);
         if (status != CAN_ERR_OK)
             printf("error sending CAN frame \n");
-        sleep(TCU_DATA3_PERIOD);
-        gear++;
-        selector++;
-        tcc_state = tcc_state == 2 ? 0 : 2;
+        timespec_get(&ts, TIME_UTC);
+        ts.tv_sec += (int)TCU_DATA3_PERIOD;
+        ts.tv_nsec += (TCU_DATA3_PERIOD - (int)TCU_DATA3_PERIOD) * 10000000000;
+        pthread_mutex_lock(&m);
+        pthread_cond_timedwait(&c, &m, &ts);
+        pthread_mutex_unlock(&m);
+        //sleep(TCU_DATA3_PERIOD);
+        tcu_data3_update(&gear, &selector, &tcc_state);
     }
 
     return NULL;
@@ -537,6 +576,7 @@ void *esp_data2_send_routine(void *args)
 {
     TCAN_HANDLE handle = *(TCAN_HANDLE *)args;
     CAN_MSG msg;
+    struct timespec ts;
 
     msg.Flags = CAN_FLAGS_STANDARD;
     msg.Id = 0x318;
@@ -556,13 +596,18 @@ void *esp_data2_send_routine(void *args)
         pthread_mutex_unlock(&write_mut);
         if (status != CAN_ERR_OK)
             printf("error sending CAN frame \n");
-        sleep(ESP_DATA2_PERIOD);
+        timespec_get(&ts, TIME_UTC);
+        ts.tv_sec += (int)TCU_DATA3_PERIOD;
+        ts.tv_nsec += (TCU_DATA3_PERIOD - (int)TCU_DATA3_PERIOD) * 10000000000;
+        pthread_mutex_lock(&m);
+        pthread_cond_timedwait(&c, &m, &ts);
+        pthread_mutex_unlock(&m);
+        //sleep(ESP_DATA2_PERIOD);
     }
 
     return NULL;
 }
 
-// TODO : Find error on this
 void *fake_ecu2_node(void *args)
 {
     while (1)
