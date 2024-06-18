@@ -42,7 +42,6 @@ typedef enum
 } tps_attack_mode;
 
 gboolean gui_print(gpointer data){
-    // TODO : Find a way to print the messages wihtout using -1 which causes iterator errors
     struct print_param* prmtrs = (struct print_param*)data;
     char * msg = prmtrs->msg;
     size_t size = prmtrs->size; 
@@ -611,8 +610,8 @@ void *fake_ecu2_node(void *args)
                 printf("error sending CAN frame \n");
 
             timespec_get(&ts, TIME_UTC);
-            ts.tv_sec += (int)ATTACK_FAKE_TPS_FREQUENCY;
-            ts.tv_nsec += (ATTACK_FAKE_TPS_FREQUENCY - (int)ATTACK_FAKE_TPS_FREQUENCY) * 10000000000;
+            ts.tv_sec += (int)ATTACK_FAKE_TPS_PERIOD;
+            ts.tv_nsec += (ATTACK_FAKE_TPS_PERIOD - (int)ATTACK_FAKE_TPS_PERIOD) * 10000000000;
             pthread_mutex_lock(&m);
             pthread_cond_timedwait(&c, &m, &ts);
             pthread_mutex_unlock(&m);
@@ -655,8 +654,8 @@ void *dos_attack_node(void *args)
             if (status != CAN_ERR_OK)
                 printf("error sending CAN frame \n");
             timespec_get(&ts, TIME_UTC);
-            ts.tv_sec += (int)ATTACK_DOS_FREQUENCY;
-            ts.tv_nsec += (ATTACK_DOS_FREQUENCY - (int)ATTACK_DOS_FREQUENCY) * 10000000000;
+            ts.tv_sec += (int)ATTACK_DOS_PERIOD;
+            ts.tv_nsec += (ATTACK_DOS_PERIOD - (int)ATTACK_DOS_PERIOD) * 10000000000;
             pthread_mutex_lock(&m);
             pthread_cond_timedwait(&c, &m, &ts);
             pthread_mutex_unlock(&m);
