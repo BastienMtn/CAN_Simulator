@@ -22,7 +22,12 @@
 // TODO - Add attack scenarios
 // TODO - Replace sleep by pthread_cond_wait
 
-pthread_mutex_t write_mut;
+struct print_param{
+    char *msg;
+    size_t size;
+};
+
+pthread_mutex_t write_mut, print_mut;
 pthread_mutex_t m, dos_mut, flood_mut;
 pthread_cond_t c, dos_cond, flood_cond;
 bool dosOn = false, floodOn = false;
@@ -37,17 +42,31 @@ typedef enum
 } tps_attack_mode;
 
 gboolean gui_print(char* msg, size_t size){
-    GtkTextIter end;
-    // Get the end iterator and insert text
-    gtk_text_buffer_get_end_iter(buff, &end);
-    gtk_text_buffer_insert(buff, &end, msg, size);
+    // TODO : Find a way to print the messages wihtout using -1 which causes iterator errors
+    pthread_mutex_lock(&print_mut);
+    GtkTextIter start, end;
+    if(gtk_text_buffer_get_line_count(buff)>30){
+        gtk_text_buffer_get_start_iter(buff, &start);
+        gtk_text_buffer_get_start_iter(buff, &end);
+        gtk_text_iter_forward_to_line_end(&end);
+        gtk_text_buffer_delete(buff,&start, &end);
+        gtk_text_buffer_get_end_iter(buff, &end);
+        gtk_text_buffer_insert(buff, &end, msg, size);
+    }else{
+        // Get the end iterator and insert text
+        gtk_text_buffer_get_end_iter(buff, &end);
+        gtk_text_buffer_insert(buff, &end, msg, size);
+    }
+    pthread_mutex_unlock(&print_mut);
 }
 
 static void text_clear(GtkWidget *widget, gpointer data){
+    pthread_mutex_lock(&print_mut);
     GtkTextIter start, end;
     gtk_text_buffer_get_start_iter(buff, &start);
     gtk_text_buffer_get_end_iter(buff, &end);
     gtk_text_buffer_delete(buff,&start, &end);
+    pthread_mutex_unlock(&print_mut);
 }
 
 static void dos_bttn_cllbck(GtkWidget *widget, gpointer data)
@@ -196,24 +215,38 @@ void *receive_routine(void *args)
     TCAN_HANDLE handle = *(TCAN_HANDLE *)args;
     CAN_MSG recvMSG;
     TCAN_STATUS status;
+    char text[512];
     while (1)
     {
         status = CAN_Read(handle, &recvMSG);
         if (status == CAN_ERR_OK)
         {
-            printf("Read ID=0x%lx, Type=%s, DLC=%d, FrameType=%s, Data=",
+            snprintf(text, sizeof(text),"Read ID=0x%lx, Type=%s, DLC=%d, FrameType=%s, Data=",
                    recvMSG.Id, (recvMSG.Flags & CAN_FLAGS_STANDARD) ? "STD" : "EXT",
                    recvMSG.Size, (recvMSG.Flags & CAN_FLAGS_REMOTE) ? "REMOTE" : "DATA");
+            // Find the length of the destination string
+            int destLen = strlen(text);
             for (int i = 0; i < recvMSG.Size; i++)
             {
-                printf("%X,", recvMSG.Data[i]);
+                if(i==(recvMSG.Size-1)){
+                    snprintf(text+destLen*sizeof(char),10*sizeof(char),"%X \n", recvMSG.Data[i]);
+                }else{
+                    snprintf(text+destLen*sizeof(char),10*sizeof(char),"%X,", recvMSG.Data[i]);
+                }                
+                destLen = strlen(text);
             }
-            printf("\n");
+            //snprintf(text+destLen*sizeof(char),10,"\n");
+            struct print_param prmtrs;
+            prmtrs.msg = text;
+            prmtrs.size = strlen(text);
+            //g_iddle_add(gui_print, prmtrs);
+            gui_print(text, strlen(text));
+            //printf("\n");
             if (recvMSG.Id == 0x180)
             {
                 struct opel_omega_2001_sas_data_t sas_msg;
                 opel_omega_2001_sas_data_unpack(&sas_msg, recvMSG.Data, recvMSG.Size);
-                printf("Message is from SAS, Angle = %f and Speed = %f \n", opel_omega_2001_sas_data_steering_angle_decode(sas_msg.steering_angle), opel_omega_2001_sas_data_steering_speed_decode(sas_msg.steering_speed));
+                //printf("Message is from SAS, Angle = %f and Speed = %f \n", opel_omega_2001_sas_data_steering_angle_decode(sas_msg.steering_angle), opel_omega_2001_sas_data_steering_speed_decode(sas_msg.steering_speed));
             }
             // break;
         }
@@ -640,11 +673,18 @@ int main(int argc, char *argv[])
 
     TCAN_STATUS status;
 
+    if (pthread_mutex_init(&print_mut, NULL) != 0)
+    {
+        printf("\n mutex init has failed\n");
+        return 1;
+    }
+
     if (pthread_mutex_init(&write_mut, NULL) != 0)
     {
         printf("\n mutex init has failed\n");
         return 1;
     }
+
     if (pthread_mutex_init(&m, NULL) != 0)
     {
         printf("\n mutex init has failed\n");
