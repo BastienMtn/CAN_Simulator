@@ -27,11 +27,12 @@ struct print_param{
 };
 
 pthread_mutex_t write_mut, print_mut;
-pthread_mutex_t m, dos_mut, flood_mut, fuzz_mut;
-pthread_cond_t c, dos_cond, flood_cond, fuzz_cond;
-bool dosOn = false, floodOn = false, fuzzON = false;
+pthread_mutex_t m, dos_mut, flood_mut, fuzz_mut, replay_mut, suspend_mut;
+pthread_cond_t c, dos_cond, flood_cond, fuzz_cond, replay_cond, suspend_cond;
+bool dosOn = false, floodOn = false, fuzzON = false, replayOn = false, suspendOn = false;
 static float acc_pedal = 0;
 GtkTextBuffer *buff;
+CAN_MSG replay_msg; // Variable globale pour stocker dernière trame envoyée utile l'attaque replay
 
 typedef enum
 {
@@ -102,7 +103,7 @@ static void flood_bttn_cllbck(GtkWidget *widget, gpointer data)
     pthread_mutex_unlock(&flood_mut);
 }
 
-// Test attack fuzzy 
+//attack fuzzy 
 static void fuzz_bttn_cllbck(GtkWidget *widget, gpointer data)
 {
     pthread_mutex_lock(&fuzz_mut);
@@ -117,6 +118,40 @@ static void fuzz_bttn_cllbck(GtkWidget *widget, gpointer data)
         printf("Fuzzy Attack is Off\n");
     }
     pthread_mutex_unlock(&fuzz_mut);
+}
+
+//attack replay 
+static void replay_bttn_cllbck(GtkWidget *widget, gpointer data)
+{
+    pthread_mutex_lock(&replay_mut);
+    replayOn = !replayOn;
+    if (replayOn)
+    {
+        pthread_cond_signal(&replay_cond);
+        printf("Replay Attack is On\n");
+    }
+    else
+    {
+        printf("Replay Attack is Off\n");
+    }
+    pthread_mutex_unlock(&replay_mut);
+}
+
+//attack suspend 
+static void suspend_bttn_cllbck(GtkWidget *widget, gpointer data)
+{
+    pthread_mutex_lock(&suspend_mut);
+    suspendOn = !suspendOn;
+    if (suspendOn)
+    {
+        pthread_cond_signal(&suspend_cond);
+        printf("Suspend Attack is On\n");
+    }
+    else
+    {
+        printf("Suspend Attack is Off\n");
+    }
+    pthread_mutex_unlock(&suspend_mut);
 }
 
 static void activate(GtkApplication *app, gpointer user_data)
@@ -147,16 +182,22 @@ static void activate(GtkApplication *app, gpointer user_data)
 
     button = gtk_toggle_button_new_with_label("Flood");
     g_signal_connect(button, "clicked", G_CALLBACK(flood_bttn_cllbck), NULL);
-
-    /* Place the second button in the grid cell (1, 0), and make it fill
-     * just 1 cell horizontally and vertically (ie no spanning)
-     */
     gtk_grid_attach(GTK_GRID(grid), button, 1, 0, 1, 1);
 
     // Fuzzy button
     button = gtk_toggle_button_new_with_label("Fuzzy");
     g_signal_connect(button, "clicked", G_CALLBACK(fuzz_bttn_cllbck), NULL);
-    gtk_grid_attach(GTK_GRID(grid), button, 2, 1, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), button, 2, 0, 1, 1);
+
+    // Replay button
+    button = gtk_toggle_button_new_with_label("Replay");
+    g_signal_connect(button, "clicked", G_CALLBACK(replay_bttn_cllbck), NULL);
+    gtk_grid_attach(GTK_GRID(grid), button, 3, 0, 1, 1);
+
+    // Suspend button
+    button = gtk_toggle_button_new_with_label("Suspend");
+    g_signal_connect(button, "clicked", G_CALLBACK(suspend_bttn_cllbck), NULL);
+    gtk_grid_attach(GTK_GRID(grid), button, 4, 0, 1, 1);
 
     /* The text buffer represents the text being edited */
     buff = gtk_text_buffer_new(NULL);
@@ -207,7 +248,7 @@ TCAN_HANDLE can_init()
     TCAN_HANDLE handle;
     TCAN_STATUS status;
 
-    CHAR *comPort = "COM3";
+    CHAR *comPort = "/dev/ttyUSB0";
     CHAR *szBitrate = "250";
     CHAR *acceptance_code = "1FFFFFFF";
     CHAR *acceptance_mask = "00000000";
@@ -342,8 +383,17 @@ void *sas_data_send_routine(void *args)
     double speed = 0;
 
     struct opel_omega_2001_sas_data_t msg_p;
-    while (1)
+
+    while (1) 
     {
+        pthread_mutex_lock(&suspend_mut); // Lock pour venir lire l'état de variable
+        while(suspendOn) // On check si attack suspend = 1
+        {
+            pthread_mutex_unlock(&suspend_mut); // Unlock pour laisser le bouton changer la variable pour stopper l'attack par ex
+            pthread_mutex_lock(&suspend_mut); // On lock a nouveau pour lire l'état de la variable 
+        }
+        pthread_mutex_unlock(&suspend_mut); // Unlock une fois la variable lue
+
         opel_omega_2001_sas_data_init(&msg_p);
         msg_p.steering_angle = opel_omega_2001_sas_data_steering_angle_encode(angle);
         msg_p.steering_speed = opel_omega_2001_sas_data_steering_speed_encode(speed);
@@ -354,6 +404,12 @@ void *sas_data_send_routine(void *args)
         pthread_mutex_unlock(&write_mut);
         if (status != CAN_ERR_OK)
             printf("error sending CAN frame \n");
+        
+        //Stock chaque dernière trame recue pour utilisation dans attack replay
+        pthread_mutex_lock(&write_mut);
+        replay_msg = msg;
+        pthread_mutex_unlock(&write_mut);
+
         timespec_get(&ts, TIME_UTC);
         ts.tv_sec += (int)SAS_DATA_PERIOD;
         ts.tv_nsec += (SAS_DATA_PERIOD - (int)SAS_DATA_PERIOD) * 10000000000;
@@ -753,7 +809,7 @@ void *fuzz_ecu2_node(void *args) // Simulation de l'attaque fuzz sur le réseau 
     while (1)
     {
         pthread_mutex_lock(&fuzz_mut); // Verrouille le mutex fuzz_mut 
-        //pthread_cond_wait(&fuzz_cond, &fuzz_mut); // Attend un signal sur la condition fuzz_cond, relâche le mutex pendant l'attente
+        pthread_cond_wait(&fuzz_cond, &fuzz_mut); // Attend un signal sur la condition fuzz_cond, relâche le mutex pendant l'attente
         pthread_mutex_unlock(&fuzz_mut); // Déverrouille le mutex fuzz_mut après avoir reçu le signal
         TCAN_HANDLE handle = *(TCAN_HANDLE *)args; // Récupère le handle CAN passé en argument
         CAN_MSG msg; // Déclare une structure de message CAN
@@ -801,6 +857,48 @@ void *fuzz_ecu2_node(void *args) // Simulation de l'attaque fuzz sur le réseau 
         }
         pthread_mutex_unlock(&fuzz_mut); // Déverrouille le mutex fuzz_mut après la boucle de fuzzing
     }
+    return NULL;
+}
+
+void *replay_attack_routine(void *args)
+{
+    while (1)
+    {
+        pthread_mutex_lock(&replay_mut); 
+        pthread_cond_wait(&replay_cond, &replay_mut); 
+        pthread_mutex_unlock(&replay_mut); 
+
+        TCAN_HANDLE handle = *(TCAN_HANDLE *)args;
+        CAN_MSG msg;
+        struct timespec ts;
+
+        // Copie la trame stockée dans replay_msg la variable globale 
+        pthread_mutex_lock(&write_mut);
+        msg = replay_msg;
+        pthread_mutex_unlock(&write_mut);
+
+        while (replayOn)
+        {
+            // Envoi la trame CAN
+            pthread_mutex_lock(&write_mut);
+            TCAN_STATUS status = CAN_Write(handle, &msg);
+            pthread_mutex_unlock(&write_mut);
+            if (status != CAN_ERR_OK)
+            {
+                printf("error sending CAN frame \n");
+            }
+
+            timespec_get(&ts, TIME_UTC); // Obtient le temps actuel en UTC
+            ts.tv_sec += (int)ATTACK_REPLAY_PERIOD; // Ajoute la période d'attaque en secondes au temps actuel
+            ts.tv_nsec += (ATTACK_REPLAY_PERIOD - (int)ATTACK_REPLAY_PERIOD) * 1000000000; // Ajoute la fraction de période en nanosecondes au temps actuel
+
+            pthread_mutex_lock(&m); // Verrouille le mutex m pour gérer le temps d'attente
+            pthread_cond_timedwait(&c, &m, &ts); // Attend la condition c ou le temps ts
+            pthread_mutex_unlock(&m); // Déverrouille le mutex m après l'attente
+        }
+
+    }
+    
     return NULL;
 }
 
@@ -881,6 +979,12 @@ int main(int argc, char *argv[])
     pthread_t fuzz_thread;
     pthread_create(&fuzz_thread, NULL, fuzz_ecu2_node, &handle);
 
+    pthread_t replay_thread;
+    pthread_create(&replay_thread, NULL, replay_attack_routine, &handle);
+
+    pthread_t suspend_thread;
+    pthread_create(&suspend_thread, NULL, sas_data_send_routine, &handle);
+
     gui_status = g_application_run(G_APPLICATION(app), argc, argv);
 
     pthread_join(ecu_data1_thread, NULL);
@@ -889,6 +993,8 @@ int main(int argc, char *argv[])
     pthread_join(sas_thread, NULL);
     pthread_join(receive_thd, NULL);
     pthread_join(fuzz_thread, NULL);
+    pthread_join(replay_thread, NULL);
+    pthread_join(suspend_thread, NULL);
 
     status = CAN_Close(handle);
     printf("Test finish\n");

@@ -39,3 +39,6 @@
 // Attack fuzzing. We can change only the data's position (mode 0), or 8 bytes of data (mode 1) 
 #define ATTACK_FUZZ_PERIOD 0.1f
 #define ATTACK_FUZZ_MOD 0 
+
+// Attack replay
+#define ATTACK_REPLAY_PERIOD 0.1f
