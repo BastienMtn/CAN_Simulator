@@ -35,3 +35,7 @@
 // This attack has for objective to DOS all lower priority messages. Most effective if Id = 1
 #define ATTACK_DOS_PERIOD 0.1f
 #define ATTACK_DOS_ID 1
+
+// Attack fuzzing. We can change only the data's position (mode 0), or 8 bytes of data (mode 1) 
+#define ATTACK_FUZZ_PERIOD 0.1f
+#define ATTACK_FUZZ_MOD 0 

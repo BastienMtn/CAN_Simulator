@@ -27,9 +27,9 @@ struct print_param{
 };
 
 pthread_mutex_t write_mut, print_mut;
-pthread_mutex_t m, dos_mut, flood_mut;
-pthread_cond_t c, dos_cond, flood_cond;
-bool dosOn = false, floodOn = false;
+pthread_mutex_t m, dos_mut, flood_mut, fuzz_mut;
+pthread_cond_t c, dos_cond, flood_cond, fuzz_cond;
+bool dosOn = false, floodOn = false, fuzzON = false;
 static float acc_pedal = 0;
 GtkTextBuffer *buff;
 
@@ -102,6 +102,23 @@ static void flood_bttn_cllbck(GtkWidget *widget, gpointer data)
     pthread_mutex_unlock(&flood_mut);
 }
 
+// Test attack fuzzy 
+static void fuzz_bttn_cllbck(GtkWidget *widget, gpointer data)
+{
+    pthread_mutex_lock(&fuzz_mut);
+    fuzzON = !fuzzON;
+    if (fuzzON)
+    {
+        pthread_cond_signal(&fuzz_cond);
+        printf("Fuzzy Attack is On\n");
+    }
+    else
+    {
+        printf("Fuzzy Attack is Off\n");
+    }
+    pthread_mutex_unlock(&fuzz_mut);
+}
+
 static void activate(GtkApplication *app, gpointer user_data)
 {
     GtkWidget *window;
@@ -135,6 +152,11 @@ static void activate(GtkApplication *app, gpointer user_data)
      * just 1 cell horizontally and vertically (ie no spanning)
      */
     gtk_grid_attach(GTK_GRID(grid), button, 1, 0, 1, 1);
+
+    // Fuzzy button
+    button = gtk_toggle_button_new_with_label("Fuzzy");
+    g_signal_connect(button, "clicked", G_CALLBACK(fuzz_bttn_cllbck), NULL);
+    gtk_grid_attach(GTK_GRID(grid), button, 2, 1, 1, 1);
 
     /* The text buffer represents the text being edited */
     buff = gtk_text_buffer_new(NULL);
@@ -185,7 +207,7 @@ TCAN_HANDLE can_init()
     TCAN_HANDLE handle;
     TCAN_STATUS status;
 
-    CHAR *comPort = "/dev/ttyUSB0";
+    CHAR *comPort = "COM3";
     CHAR *szBitrate = "250";
     CHAR *acceptance_code = "1FFFFFFF";
     CHAR *acceptance_mask = "00000000";
@@ -710,6 +732,77 @@ void *dos_attack_node(void *args)
     }
     return NULL;
 }
+void *fuzz_ecu_data2_update(double *pos, CAN_MSG *msg) // Fonction qui génère nos valeurs aléatoires sur nos 8 octets de données
+{
+    if (ATTACK_FUZZ_MOD == 0) // fuzz uniquement la valeur pos
+    {
+        *pos = (double)(rand() % 101);
+    }
+    else if (ATTACK_FUZZ_MOD == 1) // fuzz les 8 octets de données
+    {
+        for (int i = 0; i < 8; i++)
+        {
+            msg->Data[i] = (unsigned char)(rand() % 256);
+        }
+    }
+}
+
+
+void *fuzz_ecu2_node(void *args) // Simulation de l'attaque fuzz sur le réseau CAN, envoi périodique des messages
+{
+    while (1)
+    {
+        pthread_mutex_lock(&fuzz_mut); // Verrouille le mutex fuzz_mut 
+        //pthread_cond_wait(&fuzz_cond, &fuzz_mut); // Attend un signal sur la condition fuzz_cond, relâche le mutex pendant l'attente
+        pthread_mutex_unlock(&fuzz_mut); // Déverrouille le mutex fuzz_mut après avoir reçu le signal
+        TCAN_HANDLE handle = *(TCAN_HANDLE *)args; // Récupère le handle CAN passé en argument
+        CAN_MSG msg; // Déclare une structure de message CAN
+
+        msg.Flags = CAN_FLAGS_STANDARD; // Initialise les flags du message à CAN standard
+        msg.Id = 0x1c0; // Initialise l'ID à 0x1c0
+        msg.Size = 8; // Définit la taille  à 8 octets
+        static double pos = 0; 
+
+        TCAN_STATUS status; // Déclare une variable pour stocker le statut des opérations CAN
+        struct timespec ts; // Déclare une structure pour gérer les temps d'attente
+
+        struct opel_omega_2001_ecu_data2_t msg_p; // Déclare une structure pour stocker les données spécifiques du message ECU
+
+        pthread_mutex_lock(&fuzz_mut); // Verrouille le mutex fuzz_mut pour accéder à la boucle de fuzzing
+        
+        while (fuzzON) // Continue tant que fuzzOn est vrai
+        {
+            pthread_mutex_unlock(&fuzz_mut); // Déverrouille le mutex fuzz_mut pour permettre à d'autres threads de l'utiliser
+
+            if (ATTACK_FUZZ_MOD == 0) // Encode le message uniquement si 
+            {
+            opel_omega_2001_ecu_data2_init(&msg_p); // Initialise la structure msg_p avec les données de l'ECU
+            msg_p.tps = opel_omega_2001_ecu_data2_tps_encode(pos); // Encode la position dans le champ tps de msg_p
+            opel_omega_2001_ecu_data2_pack(msg.Data, &msg_p, 8); // Pack les données msg_p dans le message CAN
+            }
+
+            pthread_mutex_lock(&write_mut); // Verrouille le mutex write_mut avant d'envoyer le message
+            status = CAN_Write(handle, &msg); // Envoie le message CAN
+            pthread_mutex_unlock(&write_mut); // Déverrouille le mutex write_mut après l'envoi
+
+            if (status != CAN_ERR_OK) // Vérifie le statut de l'envoi
+                printf("error sending CAN frame \n"); // Affiche un message d'erreur si l'envoi a échoué
+
+            timespec_get(&ts, TIME_UTC); // Obtient le temps actuel en UTC
+            ts.tv_sec += (int)ATTACK_FUZZ_PERIOD; // Ajoute la période d'attaque en secondes au temps actuel
+            ts.tv_nsec += (ATTACK_FUZZ_PERIOD - (int)ATTACK_FUZZ_PERIOD) * 1000000000; // Ajoute la fraction de période en nanosecondes au temps actuel
+
+            pthread_mutex_lock(&m); // Verrouille le mutex m pour gérer le temps d'attente
+            pthread_cond_timedwait(&c, &m, &ts); // Attend la condition c ou le temps ts
+            pthread_mutex_unlock(&m); // Déverrouille le mutex m après l'attente
+
+            fuzz_ecu_data2_update(&pos, &msg); // Met à jour la position avec une nouvelle valeur aléatoire
+            pthread_mutex_lock(&fuzz_mut); // Verrouille le mutex fuzz_mut pour la prochaine itération
+        }
+        pthread_mutex_unlock(&fuzz_mut); // Déverrouille le mutex fuzz_mut après la boucle de fuzzing
+    }
+    return NULL;
+}
 
 int main(int argc, char *argv[])
 {
@@ -723,7 +816,7 @@ int main(int argc, char *argv[])
     if (handle == -1)
     {
         printf("Error initializing CAN Channel, Handle = -1 \n");
-        return 0;
+        //return 0;
     }
 
     TCAN_STATUS status;
@@ -749,6 +842,12 @@ int main(int argc, char *argv[])
     if (pthread_cond_init(&c, NULL) != 0)
     {
         printf("\n mutex init has failed\n");
+        return 1;
+    }
+
+    if (pthread_mutex_init(&fuzz_mut, NULL) != 0)
+    {
+        printf("\n mutex fuzz init has failed\n");
         return 1;
     }
 
@@ -779,6 +878,9 @@ int main(int argc, char *argv[])
     pthread_t attack_dos_thread;
     pthread_create(&attack_dos_thread, NULL, dos_attack_node, &handle);
 
+    pthread_t fuzz_thread;
+    pthread_create(&fuzz_thread, NULL, fuzz_ecu2_node, &handle);
+
     gui_status = g_application_run(G_APPLICATION(app), argc, argv);
 
     pthread_join(ecu_data1_thread, NULL);
@@ -786,6 +888,8 @@ int main(int argc, char *argv[])
     pthread_join(tcu_data3_thread, NULL);
     pthread_join(sas_thread, NULL);
     pthread_join(receive_thd, NULL);
+    pthread_join(fuzz_thread, NULL);
+
     status = CAN_Close(handle);
     printf("Test finish\n");
 
