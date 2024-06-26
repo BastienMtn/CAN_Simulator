@@ -816,6 +816,45 @@ void *tcu_data3_send_routine(void *args)
     return NULL;
 }
 
+void *esp_data1_send_routine(void *args)
+{
+    TCAN_HANDLE handle = *(TCAN_HANDLE *)args;
+    CAN_MSG msg;
+    struct timespec ts;
+
+    msg.Flags = CAN_FLAGS_STANDARD;
+    msg.Id = 0x120;
+    msg.Size = 8;
+
+    double abd_active, torq_req_fast, torq_req_slow = 0;
+
+    struct opel_omega_2001_esp_data1_t msg_p;
+
+    opel_omega_2001_esp_data1_init(&msg_p);
+
+    msg_p.abd_active = opel_omega_2001_esp_data1_abd_active_encode(abd_active);
+    msg_p.torque_request_fast = opel_omega_2001_esp_data1_torque_request_fast_encode(torq_req_fast);
+    msg_p.torque_request_slow = opel_omega_2001_esp_data1_torque_request_slow_encode(torq_req_slow);
+    opel_omega_2001_esp_data1_pack(msg.Data, &msg_p, 8);
+    while (1)
+    {
+        pthread_mutex_lock(&write_mut);
+        TCAN_STATUS status = CAN_Write(handle, &msg);
+        pthread_mutex_unlock(&write_mut);
+        if (status != CAN_ERR_OK)
+            printf("error sending CAN frame \n");
+        timespec_get(&ts, TIME_UTC);
+        ts.tv_sec += (int)TCU_DATA1_PERIOD;
+        ts.tv_nsec += (TCU_DATA1_PERIOD - (int)TCU_DATA1_PERIOD) * 10000000000;
+        pthread_mutex_lock(&m);
+        pthread_cond_timedwait(&c, &m, &ts);
+        pthread_mutex_unlock(&m);
+        //sleep(ESP_DATA1_PERIOD);
+    }
+
+    return NULL;
+}
+
 void *esp_data2_send_routine(void *args)
 {
     TCAN_HANDLE handle = *(TCAN_HANDLE *)args;
@@ -1212,6 +1251,9 @@ int main(int argc, char *argv[])
     pthread_t tcu_data3_thread;
     pthread_create(&tcu_data3_thread, NULL, tcu_data3_send_routine, &handle);
 
+    pthread_t esp_data1_thread;
+    pthread_create(&esp_data1_thread, NULL, esp_data1_send_routine, &handle);
+
     pthread_t esp_data2_thread;
     pthread_create(&esp_data2_thread, NULL, esp_data2_send_routine, &handle);
 
@@ -1239,6 +1281,7 @@ int main(int argc, char *argv[])
     pthread_join(ecu_data2_thread, NULL);
     pthread_join(ecu_data3_thread, NULL);
     pthread_join(ecu_data4_thread, NULL);
+    pthread_join(esp_data1_thread, NULL);
     pthread_join(esp_data2_thread, NULL);
     pthread_join(tcu_data1_thread, NULL);
     pthread_join(tcu_data2_thread, NULL);
