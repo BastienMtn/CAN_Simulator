@@ -1408,37 +1408,47 @@ int main(int argc, char *argv[])
     pthread_create(&ecu_data2_thread, NULL, ecu_data2_send_routine, &handle);
 
     usleep(30000);
+
     pthread_t ecu_data3_thread;
     pthread_create(&ecu_data3_thread, NULL, ecu_data3_send_routine, &handle);
 
+    usleep(30000);
+
     pthread_t ecu_data4_thread;
     pthread_create(&ecu_data4_thread, NULL, ecu_data4_send_routine, &handle);
+
+    usleep(30000);
 
     pthread_t tcu_data1_thread;
     pthread_create(&tcu_data1_thread, NULL, tcu_data1_send_routine, &handle);
 
     usleep(30000);
+
     pthread_t tcu_data2_thread;
     pthread_create(&tcu_data2_thread, NULL, tcu_data2_send_routine, &handle);
+
+    usleep(30000);
 
     pthread_t tcu_data3_thread;
     pthread_create(&tcu_data3_thread, NULL, tcu_data3_send_routine, &handle);
 
     usleep(30000);
+
     pthread_t esp_data1_thread;
     pthread_create(&esp_data1_thread, NULL, esp_data1_send_routine, &handle);
+
+    usleep(30000);
 
     pthread_t esp_data2_thread;
     pthread_create(&esp_data2_thread, NULL, esp_data2_send_routine, &handle);
 
     usleep(30000);
+
     pthread_t abs_wheel_thread;
     pthread_create(&abs_wheel_thread, NULL, abs_wheel_speed_routine, &handle);
 
     pthread_t attack_tps_thread;
     pthread_create(&attack_tps_thread, NULL, fake_ecu2_node, &handle);
-    
-    usleep(30000);
     
     pthread_t attack_dos_thread;
     pthread_create(&attack_dos_thread, NULL, dos_attack_node, &handle);
