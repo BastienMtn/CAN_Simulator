@@ -743,8 +743,8 @@ void *tcu_data2_send_routine(void *args)
     {
         opel_omega_2001_tcu_data2_init(&msg_p);
 
-        msg_p.torque_request1 = opel_omega_2001_tcu_data2_tot_encode(tot);
-        msg_p.torque_request2 = opel_omega_2001_tcu_data2_input_shaft_speed_encode(shaft_speed)
+        msg_p.tot = opel_omega_2001_tcu_data2_tot_encode(tot);
+        msg_p.shaft_speed = opel_omega_2001_tcu_data2_input_shaft_speed_encode(shaft_speed)
 
         opel_omega_2001_tcu_data2_pack(msg.Data, &msg_p, 8);
 
