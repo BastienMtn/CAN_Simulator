@@ -360,7 +360,7 @@ void sas_data_update(double *angle, double *speed)
         turn_angle = -SAS_TURN_MAX + (float)rand() / ((float)RAND_MAX / (2 * SAS_TURN_MAX));
         // pick a duration
         length = (rand() % 5) + 1;
-        printf("Turn angle = %f / Length = %d \n", turn_angle, length);
+        //printf("Turn angle = %f / Length = %d \n", turn_angle, length);
         count = 1;
         // prepare evolution of variables
         if (length == 1)
@@ -579,6 +579,8 @@ void *ecu_data3_update(double *brake_active, double *kickdown_active, double *cr
 
     //Pour le moment on laisse le régulteur de vitesse toujours en OFF
     *cruise_active = 0;
+
+    printf("Kickdown = %f / BrakeActive = %f \n", *kickdown_active, *brake_active);
 
 }
 
