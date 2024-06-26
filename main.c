@@ -648,8 +648,8 @@ void *ecu_data4_send_routine(void *args)
     {
         opel_omega_2001_ecu_data4_init(&msg_p);
         
-        msg_p.ect = opel_omega_2001_ecu_data4_ect_encode(value)
-        msg_p.iat = opel_omega_2001_ecu_data4_iat_encode(value)
+        msg_p.ect = opel_omega_2001_ecu_data4_ect_encode(ect);
+        msg_p.iat = opel_omega_2001_ecu_data4_iat_encode(iat);
 
         opel_omega_2001_ecu_data4_pack(msg.Data, &msg_p, 8);
 
@@ -744,7 +744,7 @@ void *tcu_data2_send_routine(void *args)
         opel_omega_2001_tcu_data2_init(&msg_p);
 
         msg_p.tot = opel_omega_2001_tcu_data2_tot_encode(tot);
-        msg_p.shaft_speed = opel_omega_2001_tcu_data2_input_shaft_speed_encode(shaft_speed)
+        msg_p.shaft_speed = opel_omega_2001_tcu_data2_input_shaft_speed_encode(shaft_speed);
 
         opel_omega_2001_tcu_data2_pack(msg.Data, &msg_p, 8);
 
@@ -896,13 +896,13 @@ void *abs_wheel_speed_routine(void *args)
         opel_omega_2001_abs_wheel_speed_init(&msg_p);
 
         msg_p.front_left_flag = opel_omega_2001_abs_wheel_speed_front_left_wheel_error_flag_encode(front_left_flag);
-        msg_p.front_left_speed = opel_omega_2001_abs_wheel_speed_front_left_wheel_speed_encode(front_left_speed)
-        msg_p.front_right_flag = opel_omega_2001_abs_wheel_speed_front_right_wheel_error_flag_encode(front_right_flag)
-        msg_p.front_right_speed = opel_omega_2001_abs_wheel_speed_front_right_wheel_speed_encode(front_right_speed)
-        msg_p.rear_left_flag = opel_omega_2001_abs_wheel_speed_rear_left_wheel_error_flag_encode(rear_left_flag)
-        msg_p.rear_left_speed = opel_omega_2001_abs_wheel_speed_rear_left_wheel_speed_encode(rear_left_speed)
-        msg_p.rear_right_flag = opel_omega_2001_abs_wheel_speed_rear_right_wheel_error_flag_encode(rear_right_flag)
-        msg_p.rear_right_speed = opel_omega_2001_abs_wheel_speed_rear_right_wheel_speed_encode(rear_right_speed)
+        msg_p.front_left_speed = opel_omega_2001_abs_wheel_speed_front_left_wheel_speed_encode(front_left_speed);
+        msg_p.front_right_flag = opel_omega_2001_abs_wheel_speed_front_right_wheel_error_flag_encode(front_right_flag);
+        msg_p.front_right_speed = opel_omega_2001_abs_wheel_speed_front_right_wheel_speed_encode(front_right_speed);
+        msg_p.rear_left_flag = opel_omega_2001_abs_wheel_speed_rear_left_wheel_error_flag_encode(rear_left_flag);
+        msg_p.rear_left_speed = opel_omega_2001_abs_wheel_speed_rear_left_wheel_speed_encode(rear_left_speed);
+        msg_p.rear_right_flag = opel_omega_2001_abs_wheel_speed_rear_right_wheel_error_flag_encode(rear_right_flag);
+        msg_p.rear_right_speed = opel_omega_2001_abs_wheel_speed_rear_right_wheel_speed_encode(rear_right_speed);
 
         opel_omega_2001_abs_wheel_speed_pack(msg.Data, &msg_p, 8);
 
