@@ -9,6 +9,8 @@
 #define ECU_DATA2_PERIOD 1
 // Variable to define the period between two sends of ECU3, in seconds
 #define ECU_DATA3_PERIOD 1
+// Variable to define the period between two sends of ECU4, in seconds
+#define ECU_DATA4_PERIOD 1
 // Variable to define the period between two sends of TCU1, in seconds
 #define TCU_DATA1_PERIOD 1
 // Variable to define the period between two sends of TCU3, in seconds

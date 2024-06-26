@@ -622,6 +622,55 @@ void *ecu_data3_send_routine(void *args)
     return NULL;
 }
 
+void *ecu_data4_update(double *ect, double *iat)
+{
+    // Générer une valeur aléatoire pour ECT entre 60 et 100
+    *ect = generate_random_value(20.0, 120.0);
+
+    // Générer une valeur aléatoire pour IAT entre -10 et 50
+    *iat = generate_random_value(-10.0, 50.0);
+}
+
+void *ecu_data4_send_routine(void *args)
+{
+    TCAN_HANDLE handle = *(TCAN_HANDLE *)args;
+    CAN_MSG msg;
+    struct timespec ts;
+
+    msg.Flags = CAN_FLAGS_STANDARD;
+    msg.Id = 0x5c0;
+    msg.Size = 8;
+    double ect = 0; //Engine Coolant Temperature
+    double iat = 0; //Intake Air Temperature
+
+    struct opel_omega_2001_ecu_data4_t msg_p;
+    while (1)
+    {
+        opel_omega_2001_ecu_data4_init(&msg_p);
+        
+        msg_p.ect = opel_omega_2001_ecu_data4_ect_encode(value)
+        msg_p.iat = opel_omega_2001_ecu_data4_iat_encode(value)
+
+        opel_omega_2001_ecu_data4_pack(msg.Data, &msg_p, 8);
+
+        pthread_mutex_lock(&write_mut);
+        TCAN_STATUS status = CAN_Write(handle, &msg);
+        pthread_mutex_unlock(&write_mut);
+        if (status != CAN_ERR_OK)
+            printf("error sending CAN frame \n");
+        timespec_get(&ts, TIME_UTC);
+        ts.tv_sec += (int)ECU_DATA4_PERIOD;
+        ts.tv_nsec += (ECU_DATA4_PERIOD - (int)ECU_DATA4_PERIOD) * 10000000000;
+        pthread_mutex_lock(&m);
+        pthread_cond_timedwait(&c, &m, &ts);
+        pthread_mutex_unlock(&m);
+        //sleep(ECU_DATA4_PERIOD);
+        ecu_data4_update(&ect, &iat);
+    }
+
+    return NULL;
+}
+
 void *tcu_data1_update(double *torque, double *oss)
 {
     *torque = (double)(acc_pedal * 2, 55);
