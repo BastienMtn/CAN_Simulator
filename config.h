@@ -13,6 +13,8 @@
 #define ECU_DATA4_PERIOD 1
 // Variable to define the period between two sends of TCU1, in seconds
 #define TCU_DATA1_PERIOD 1
+// Variable to define the period between two sends of TCU2, in seconds
+#define TCU_DATA2_PERIOD 1
 // Variable to define the period between two sends of TCU3, in seconds
 #define TCU_DATA3_PERIOD 2
 // Variable to define the period between two sends of ESP2, in seconds

@@ -718,6 +718,54 @@ void *tcu_data1_send_routine(void *args)
     return NULL;
 }
 
+void *tcu_data2_update(double *tot, double *shaft_speed)
+{
+    *tot = generate_random_value(20.0, 140.0);
+
+    *shaft_speed = generate_random_value(0.0, 10000.0);
+}
+
+void *tcu_data2_send_routine(void *args)
+{
+    TCAN_HANDLE handle = *(TCAN_HANDLE *)args;
+    CAN_MSG msg;
+    struct timespec ts;
+
+    msg.Flags = CAN_FLAGS_STANDARD;
+    msg.Id = 0x2E0;
+    msg.Size = 8;
+
+    struct opel_omega_2001_tcu_data2_t msg_p;
+    double tot = 0; //Transmission Oil Temperature
+    double shaft_speed = 0;
+
+    while (1)
+    {
+        opel_omega_2001_tcu_data2_init(&msg_p);
+
+        msg_p.torque_request1 = opel_omega_2001_tcu_data2_tot_encode(tot);
+        msg_p.torque_request2 = opel_omega_2001_tcu_data2_input_shaft_speed_encode(shaft_speed)
+
+        opel_omega_2001_tcu_data2_pack(msg.Data, &msg_p, 8);
+
+        pthread_mutex_lock(&write_mut);
+        TCAN_STATUS status = CAN_Write(handle, &msg);
+        pthread_mutex_unlock(&write_mut);
+        if (status != CAN_ERR_OK)
+            printf("error sending CAN frame \n");
+        timespec_get(&ts, TIME_UTC);
+        ts.tv_sec += (int)TCU_DATA2_PERIOD;
+        ts.tv_nsec += (TCU_DATA2_PERIOD - (int)TCU_DATA2_PERIOD) * 10000000000;
+        pthread_mutex_lock(&m);
+        pthread_cond_timedwait(&c, &m, &ts);
+        pthread_mutex_unlock(&m);
+        //sleep(TCU_DATA2_PERIOD);
+        tcu_data2_update(&tot, &shaft_speed);
+    }
+
+    return NULL;
+}
+
 // TODO - Make this more realistic
 void *tcu_data3_update(double *gear, double *selector, double* tcc_state)
 {
