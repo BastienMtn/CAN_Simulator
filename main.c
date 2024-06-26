@@ -1199,14 +1199,26 @@ int main(int argc, char *argv[])
     pthread_t ecu_data2_thread;
     pthread_create(&ecu_data2_thread, NULL, ecu_data2_send_routine, &handle);
 
+    pthread_t ecu_data3_thread;
+    pthread_create(&ecu_data3_thread, NULL, ecu_data3_send_routine, &handle);
+
+    pthread_t ecu_data4_thread;
+    pthread_create(&ecu_data4_thread, NULL, ecu_data4_send_routine, &handle);
+
     pthread_t tcu_data1_thread;
     pthread_create(&tcu_data1_thread, NULL, tcu_data1_send_routine, &handle);
+
+    pthread_t tcu_data2_thread;
+    pthread_create(&tcu_data2_thread, NULL, tcu_data2_send_routine, &handle);
 
     pthread_t tcu_data3_thread;
     pthread_create(&tcu_data3_thread, NULL, tcu_data3_send_routine, &handle);
 
     pthread_t esp_data2_thread;
     pthread_create(&esp_data2_thread, NULL, esp_data2_send_routine, &handle);
+
+    pthread_t abs_wheel_thread;
+    pthread_create(&abs_wheel_thread, NULL, abs_wheel_speed_routine, &handle);
 
     pthread_t attack_tps_thread;
     pthread_create(&attack_tps_thread, NULL, fake_ecu2_node, &handle);
@@ -1227,7 +1239,13 @@ int main(int argc, char *argv[])
 
     pthread_join(ecu_data1_thread, NULL);
     pthread_join(ecu_data2_thread, NULL);
+    pthread_join(ecu_data3_thread, NULL);
+    pthread_join(ecu_data4_thread, NULL);
+    pthread_join(esp_data2_thread, NULL);
+    pthread_join(tcu_data1_thread, NULL);
+    pthread_join(tcu_data2_thread, NULL);
     pthread_join(tcu_data3_thread, NULL);
+    pthread_join(abs_wheel_thread, NULL);
     pthread_join(sas_thread, NULL);
     pthread_join(receive_thd, NULL);
     pthread_join(fuzz_thread, NULL);
