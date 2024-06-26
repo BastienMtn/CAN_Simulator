@@ -30,7 +30,12 @@ pthread_mutex_t write_mut, print_mut;
 pthread_mutex_t m, dos_mut, flood_mut, fuzz_mut, replay_mut, suspend_mut;
 pthread_cond_t c, dos_cond, flood_cond, fuzz_cond, replay_cond, suspend_cond;
 bool dosOn = false, floodOn = false, fuzzON = false, replayOn = false, suspendOn = false;
+
+//Global variables for update ECU...
 static float acc_pedal = 0;
+static int acc_duration = 1;
+static int acc_count= 0;
+
 GtkTextBuffer *buff;
 CAN_MSG replay_msg; // Variable globale pour stocker dernière trame envoyée utile l'attaque replay
 
@@ -426,27 +431,25 @@ void *sas_data_send_routine(void *args)
 void ecu_data1_update(double *rpm, double *app, double *torque_req, double *torque_resp, double *torque_lost)
 {
     static bool isMoving = false;
-    static int length = 1;
-    static int count = 0;
     static float x = 0;
     static float app_max = 0;
     if (isMoving == true)
     {
-        if (count == length + 1)
+        if (acc_count == acc_duration + 1)
         {
             isMoving = false;
             *rpm = *app = *torque_req = *torque_lost = *torque_resp = 0;
         }
         else
         {
-            x = -1 + 2 * count / ((float)length + 1);
+            x = -1 + 2 * acc_count / ((float)acc_duration + 1);
             *app = (1 - pow(x, 2)) * app_max;
             *rpm = (*app / 100) * ECU1_MAX_REAL_RPM * (0.8f + (float)rand() / ((float)RAND_MAX / (2 * 0.2f)));
             *torque_req = (*app / 100) * ECU1_MAX_TORQUE_REQ;
             *torque_resp = *torque_req * (0.8f + (float)rand() / ((float)RAND_MAX / (2 * 0.2f)));
             *torque_lost = abs(*torque_req - *torque_resp);
             acc_pedal = *app;
-            count++;
+            acc_count++;
         }
     }
     else if (rand() > RAND_MAX / 4)
@@ -455,17 +458,17 @@ void ecu_data1_update(double *rpm, double *app, double *torque_req, double *torq
         // pick a speed
         app_max = (0.5f + ((float)rand() / (float)RAND_MAX) * 0.5f) * ECU1_APP_MAX;
         // pick a duration
-        length = (rand() % 50) + 1;
-        count = 1;
+        acc_duration = (rand() % 50) + 1;
+        acc_count = 1;
         // prepare evolution of variables
-        x = -1 + 2 / ((float)length + 1);
+        x = -1 + 2 / ((float)acc_duration + 1);
         *app = (1 - pow(x, 2)) * app_max;
         *rpm = (*app / 100) * ECU1_MAX_REAL_RPM * (0.8f + (float)rand() / ((float)RAND_MAX / (2 * 0.2f)));
         *torque_req = (*app / 100) * ECU1_MAX_TORQUE_REQ;
         *torque_resp = *torque_req * (0.8f + (float)rand() / ((float)RAND_MAX / (2 * 0.2f)));
         *torque_lost = abs(*torque_req - *torque_resp);
         acc_pedal = *app;
-        count++;
+        acc_count++;
     }
 }
 
@@ -547,6 +550,73 @@ void *ecu_data2_send_routine(void *args)
         pthread_mutex_unlock(&m);
         //sleep(ECU_DATA2_PERIOD);
         ecu_data2_update(&pos);
+    }
+
+    return NULL;
+}
+
+void *ecu_data3_update(double *brake_active, double *kickdown_active, double *cruise_active)
+{
+    //Si on enfonce au moins 80% de la pédale d'accelération
+    if(acc_pedal > 80)
+    {
+        *kickdown_active = 1;
+    }
+    else
+    {
+        *kickdown_active = 0;
+    }
+
+    // Si on a parcouru au moins 70%, alors on peut freiner
+    if(acc_count > 0.7 * acc_duration)
+    {
+        *brake_active = 1;
+    }
+    else 
+    {
+        *brake_active = 0;
+    }
+
+    //Pour le moment on laisse le régulteur de vitesse toujours en OFF
+    *cruise_active = 0;
+
+}
+
+void *ecu_data3_send_routine(void *args)
+{
+    TCAN_HANDLE handle = *(TCAN_HANDLE *)args;
+    CAN_MSG msg;
+    struct timespec ts;
+
+    msg.Flags = CAN_FLAGS_STANDARD;
+    msg.Id = 0x280;
+    msg.Size = 8;
+    double brake_active = 0, kickdown_active = 0, cruise_active = 0 ;
+
+    struct opel_omega_2001_ecu_data3_t msg_p;
+    while (1)
+    {
+        opel_omega_2001_ecu_data3_init(&msg_p);
+
+        msg_p.brake_active = opel_omega_2001_ecu_data3_brake_active_encode(brake_active);
+        msg_p.kickdown_active = opel_omega_2001_ecu_data3_kickdown_active_encode(kickdown_active);
+        msg_p.cruise_active = opel_omega_2001_ecu_data3_cruise_active_encode(cruise_active);
+
+        opel_omega_2001_ecu_data3_pack(msg.Data, &msg_p, 8);
+
+        pthread_mutex_lock(&write_mut);
+        TCAN_STATUS status = CAN_Write(handle, &msg);
+        pthread_mutex_unlock(&write_mut);
+        if (status != CAN_ERR_OK)
+            printf("error sending CAN frame \n");
+        timespec_get(&ts, TIME_UTC);
+        ts.tv_sec += (int)ECU_DATA3_PERIOD;
+        ts.tv_nsec += (ECU_DATA3_PERIOD - (int)ECU_DATA3_PERIOD) * 10000000000;
+        pthread_mutex_lock(&m);
+        pthread_cond_timedwait(&c, &m, &ts);
+        pthread_mutex_unlock(&m);
+        //sleep(ECU_DATA3_PERIOD);
+        ecu_data2_update(&brake_active, &kickdown_active, &cruise_active);
     }
 
     return NULL;
