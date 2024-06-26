@@ -34,6 +34,7 @@ pthread_mutex_t write_mut, print_mut;
 pthread_mutex_t m, dos_mut, flood_mut, fuzz_mut, replay_mut, suspend_mut;
 pthread_cond_t c, dos_cond, flood_cond, fuzz_cond, replay_cond, suspend_cond;
 bool dosOn = false, floodOn = false, fuzzON = false, replayOn = false, suspendOn = false;
+bool stop_threads = false;
 
 //Global variables for update ECU...
 static float acc_pedal = 0;
@@ -652,7 +653,7 @@ void *ecu_data3_send_routine(void *args)
     double brake_active = 0, kickdown_active = 0, cruise_active = 0 ;
 
     struct opel_omega_2001_ecu_data3_t msg_p;
-    while (1)
+    while (!stop_threads)
     {
         opel_omega_2001_ecu_data3_init(&msg_p);
 
@@ -701,7 +702,7 @@ void *ecu_data4_send_routine(void *args)
     double iat = 0; //Intake Air Temperature
 
     struct opel_omega_2001_ecu_data4_t msg_p;
-    while (1)
+    while (!stop_threads)
     {
         opel_omega_2001_ecu_data4_init(&msg_p);
         
@@ -806,7 +807,7 @@ void *tcu_data2_send_routine(void *args)
     double tot = 0; //Transmission Oil Temperature
     double shaft_speed = 0;
 
-    while (1)
+    while (!stop_threads)
     {
         opel_omega_2001_tcu_data2_init(&msg_p);
 
@@ -914,7 +915,7 @@ void *esp_data1_send_routine(void *args)
     msg_p.torque_request_fast = opel_omega_2001_esp_data1_torque_request_fast_encode(torq_req_fast);
     msg_p.torque_request_slow = opel_omega_2001_esp_data1_torque_request_slow_encode(torq_req_slow);
     opel_omega_2001_esp_data1_pack(msg.Data, &msg_p, 8);
-    while (1)
+    while (!stop_threads)
     {
         pthread_mutex_lock(&write_mut);
         TCAN_STATUS status = CAN_Write(handle, &msg);
@@ -1016,7 +1017,7 @@ void *abs_wheel_speed_routine(void *args)
     struct opel_omega_2001_abs_wheel_speed_t msg_p;
     double front_left_flag, front_left_speed, front_right_flag, front_right_speed, rear_left_flag, rear_left_speed, rear_right_flag, rear_right_speed = 0; 
     
-    while (1)
+    while (!stop_threads)
     {
         opel_omega_2001_abs_wheel_speed_init(&msg_p);
 
@@ -1177,7 +1178,7 @@ void *fuzz_ecu_data2_update(double *pos, CAN_MSG *msg) // Fonction qui génère 
 
 void *fuzz_ecu2_node(void *args) // Simulation de l'attaque fuzz sur le réseau CAN, envoi périodique des messages
 {
-    while (1)
+    while (!stop_threads)
     {
         pthread_mutex_lock(&fuzz_mut); // Verrouille le mutex fuzz_mut 
         pthread_cond_wait(&fuzz_cond, &fuzz_mut); // Attend un signal sur la condition fuzz_cond, relâche le mutex pendant l'attente
@@ -1233,7 +1234,7 @@ void *fuzz_ecu2_node(void *args) // Simulation de l'attaque fuzz sur le réseau 
 
 void *replay_attack_routine(void *args)
 {
-    while (1)
+    while (!stop_threads)
     {
         pthread_mutex_lock(&replay_mut); 
         pthread_cond_wait(&replay_cond, &replay_mut); 
