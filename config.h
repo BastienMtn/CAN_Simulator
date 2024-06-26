@@ -1,18 +1,28 @@
 #define OPERATION_MODE Normal
 
 // Defines for nodes' periods
-// Variable to define the period between two sends of sas, in useconds
-#define SAS_DATA_PERIOD 1000000
-// Variable to define the period between two sends of ECU1, in useconds
-#define ECU_DATA1_PERIOD 1000000
-// Variable to define the period between two sends of ECU2, in useconds
-#define ECU_DATA2_PERIOD 1000000
-// Variable to define the period between two sends of TCU1, in useconds
-#define TCU_DATA1_PERIOD 1000000
-// Variable to define the period between two sends of TCU3, in useconds
-#define TCU_DATA3_PERIOD 2000000
-// Variable to define the period between two sends of ESP2, in useconds
-#define ESP_DATA2_PERIOD 4000000
+// Variable to define the period between two sends of sas, in seconds
+#define SAS_DATA_PERIOD 1
+// Variable to define the period between two sends of ECU1, in seconds
+#define ECU_DATA1_PERIOD 1
+// Variable to define the period between two sends of ECU2, in seconds
+#define ECU_DATA2_PERIOD 1
+// Variable to define the period between two sends of ECU3, in seconds
+#define ECU_DATA3_PERIOD 1
+// Variable to define the period between two sends of ECU4, in seconds
+#define ECU_DATA4_PERIOD 1
+// Variable to define the period between two sends of TCU1, in seconds
+#define TCU_DATA1_PERIOD 1
+// Variable to define the period between two sends of TCU2, in seconds
+#define TCU_DATA2_PERIOD 1
+// Variable to define the period between two sends of TCU3, in seconds
+#define TCU_DATA3_PERIOD 2
+// Variable to define the period between two sends of ESP1, in seconds
+#define ESP_DATA1_PERIOD 1
+// Variable to define the period between two sends of ESP2, in seconds
+#define ESP_DATA2_PERIOD 4
+// Variable to define the period between two sends of ABS, in seconds
+#define ABS_WHEEL_PERIOD 1
 
 // This defines are the limits given by the DBC file of the vehicle, but they were not included in the vehicle.h files
 // Maybe add an upgrade to put in a separate file
@@ -33,5 +43,12 @@
 #define ATTACK_FAKE_TPS_MODE Fast
 
 // This attack has for objective to DOS all lower priority messages. Most effective if Id = 1
-#define ATTACK_DOS_PERIOD 0.01f
+#define ATTACK_DOS_PERIOD 0.1f
 #define ATTACK_DOS_ID 1
+
+// Attack fuzzing. We can change only the data's position (mode 0), or 8 bytes of data (mode 1) 
+#define ATTACK_FUZZ_PERIOD 0.1f
+#define ATTACK_FUZZ_MOD 0 
+
+// Attack replay
+#define ATTACK_REPLAY_PERIOD 0.1f
