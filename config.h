@@ -19,6 +19,8 @@
 #define TCU_DATA3_PERIOD 2
 // Variable to define the period between two sends of ESP2, in seconds
 #define ESP_DATA2_PERIOD 4
+// Variable to define the period between two sends of ABS, in seconds
+#define ABS_WHEEL_PERIOD 1
 
 // This defines are the limits given by the DBC file of the vehicle, but they were not included in the vehicle.h files
 // Maybe add an upgrade to put in a separate file

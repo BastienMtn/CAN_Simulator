@@ -853,6 +853,77 @@ void *esp_data2_send_routine(void *args)
     return NULL;
 }
 
+void *abs_wheel_speed_update(double *front_left_flag, double *front_left_speed, double *front_right_flag, double *front_right_speed, double *rear_left_flag, double *rear_left_speed, double *rear_right_flag, double *rear_right_speed) 
+{
+
+    *front_left_speed = generate_random_value(0.0, 255.0);
+    
+    // toutes les roues ont la même vitesse
+    *front_right_speed = *front_left_speed;
+    *rear_left_speed = *front_left_speed;
+    *rear_right_speed = *front_left_speed;
+
+    // Trigger du flag en fonction de la vitesse
+    if (*front_left_speed == 0 || *front_left_speed >= 200.0) {
+        *front_left_flag = 1;
+        *front_right_flag = 1;
+        *rear_right_flag = 1;
+        *rear_left_flag = 1;
+    } else {
+        *front_left_flag = 0;
+        *front_right_flag = 0;
+        *rear_right_flag = 0;
+        *rear_left_flag = 0; 
+    }
+}
+
+
+void *abs_wheel_speed_routine(void *args)
+{
+    TCAN_HANDLE handle = *(TCAN_HANDLE *)args;
+    CAN_MSG msg;
+    struct timespec ts;
+
+    msg.Flags = CAN_FLAGS_STANDARD;
+    msg.Id = 0x300;
+    msg.Size = 8;
+
+    struct opel_omega_2001_abs_wheel_speed_t msg_p;
+    double front_left_flag, front_left_speed, front_right_flag, front_right_speed, rear_left_flag, rear_left_speed, rear_right_flag, rear_right_speed = 0; 
+    
+    while (1)
+    {
+        opel_omega_2001_abs_wheel_speed_init(&msg_p);
+
+        msg_p.front_left_flag = opel_omega_2001_abs_wheel_speed_front_left_wheel_error_flag_encode(front_left_flag);
+        msg_p.front_left_speed = opel_omega_2001_abs_wheel_speed_front_left_wheel_speed_encode(front_left_speed)
+        msg_p.front_right_flag = opel_omega_2001_abs_wheel_speed_front_right_wheel_error_flag_encode(front_right_flag)
+        msg_p.front_right_speed = opel_omega_2001_abs_wheel_speed_front_right_wheel_speed_encode(front_right_speed)
+        msg_p.rear_left_flag = opel_omega_2001_abs_wheel_speed_rear_left_wheel_error_flag_encode(rear_left_flag)
+        msg_p.rear_left_speed = opel_omega_2001_abs_wheel_speed_rear_left_wheel_speed_encode(rear_left_speed)
+        msg_p.rear_right_flag = opel_omega_2001_abs_wheel_speed_rear_right_wheel_error_flag_encode(rear_right_flag)
+        msg_p.rear_right_speed = opel_omega_2001_abs_wheel_speed_rear_right_wheel_speed_encode(rear_right_speed)
+
+        opel_omega_2001_abs_wheel_speed_pack(msg.Data, &msg_p, 8);
+
+        pthread_mutex_lock(&write_mut);
+        TCAN_STATUS status = CAN_Write(handle, &msg);
+        pthread_mutex_unlock(&write_mut);
+        if (status != CAN_ERR_OK)
+            printf("error sending CAN frame \n");
+        timespec_get(&ts, TIME_UTC);
+        ts.tv_sec += (int)ABS_WHEEL_PERIOD;
+        ts.tv_nsec += (ABS_WHEEL_PERIOD - (int)ABS_WHEEL_PERIOD) * 10000000000;
+        pthread_mutex_lock(&m);
+        pthread_cond_timedwait(&c, &m, &ts);
+        pthread_mutex_unlock(&m);
+        //sleep(ABS_WHEEL_PERIOD);
+        abs_wheel_speed_update(&front_left_flag, &front_left_speed, &front_right_flag, &front_right_speed, &rear_left_flag, &rear_left_speed, &rear_right_flag, &rear_right_speed);
+    }
+
+    return NULL;
+}
+
 void *fake_ecu2_node(void *args)
 {
     while (1)
