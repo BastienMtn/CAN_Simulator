@@ -616,7 +616,7 @@ void *ecu_data3_send_routine(void *args)
         pthread_cond_timedwait(&c, &m, &ts);
         pthread_mutex_unlock(&m);
         //sleep(ECU_DATA3_PERIOD);
-        ecu_data2_update(&brake_active, &kickdown_active, &cruise_active);
+        ecu_data3_update(&brake_active, &kickdown_active, &cruise_active);
     }
 
     return NULL;
