@@ -20,8 +20,6 @@
 
 #include "LinuxCAN_API.h"
 
-// TODO - Add all other nodes
-// TODO - Add attack scenarios for fuzzing, replay, spoof, suspensions
 // TODO - Add aperiodic messages
 // TODO - Add latency check with remote request frames
 
@@ -457,7 +455,7 @@ void *sas_data_send_routine(void *args)
             printf("error sending CAN frame \n");
         else // printf("Sent frame 0x180\n");
             gettimeofday(&tval_end, NULL);
-        printf("180 time elapsed between 2 sends : %ld us", (tval_end.tv_usec - tval_start.tv_usec));
+        //printf("180 time elapsed between 2 sends : %ld us", (tval_end.tv_usec - tval_start.tv_usec));
         gettimeofday(&tval_start, NULL);
         /*timespec_get(&ts, TIME_UTC);
 
@@ -558,7 +556,7 @@ void *ecu_data1_send_routine(void *args)
             printf("error sending CAN frame \n");
         else // printf("Sent frame 0x1a0\n");
             gettimeofday(&tval_end, NULL);
-        printf("1a0 time elapsed between 2 sends : %ld us", (tval_end.tv_usec - tval_start.tv_usec));
+        //printf("1a0 time elapsed between 2 sends : %ld us", (tval_end.tv_usec - tval_start.tv_usec));
         gettimeofday(&tval_start, NULL);
         /*
         timespec_get(&ts, TIME_UTC);
@@ -609,7 +607,7 @@ void *ecu_data2_send_routine(void *args)
             printf("error sending CAN frame \n");
         else // printf("Sent frame 0x1c0\n");
             gettimeofday(&tval_end, NULL);
-        printf("1c0 time elapsed between 2 sends : %ld us", (tval_end.tv_usec - tval_start.tv_usec));
+        //printf("1c0 time elapsed between 2 sends : %ld us", (tval_end.tv_usec - tval_start.tv_usec));
         gettimeofday(&tval_start, NULL);
         /*
         timespec_get(&ts, TIME_UTC);
@@ -651,7 +649,7 @@ void *ecu_data3_update(double *brake_active, double *kickdown_active, double *cr
     // Pour le moment on laisse le régulteur de vitesse toujours en OFF
     *cruise_active = 0;
 
-    printf("Kickdown = %f / BrakeActive = %f \n", *kickdown_active, *brake_active);
+    //printf("Kickdown = %f / BrakeActive = %f \n", *kickdown_active, *brake_active);
 }
 
 void *ecu_data3_send_routine(void *args)
