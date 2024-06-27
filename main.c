@@ -454,7 +454,7 @@ void *sas_data_send_routine(void *args)
         if (status != CAN_ERR_OK)
             printf("error sending CAN frame \n");
         else // printf("Sent frame 0x180\n");
-            gettimeofday(&tval_end, NULL);
+        gettimeofday(&tval_end, NULL);
         // printf("180 time elapsed between 2 sends : %ld us", (tval_end.tv_usec - tval_start.tv_usec));
         gettimeofday(&tval_start, NULL);
 
@@ -679,15 +679,18 @@ void *ecu_data3_send_routine(void *args)
         pthread_mutex_unlock(&write_mut);
         struct timeval tval_timestp;
         gettimeofday(&tval_timestp, NULL);
-        can_print_message(msg, tval_timestp, 1) if (status != CAN_ERR_OK)
+        can_print_message(msg, tval_timestp, 1);
+        if (status != CAN_ERR_OK)
             printf("error sending CAN frame \n");
+        /*
         timespec_get(&ts, TIME_UTC);
         ts.tv_sec += (int)ECU_DATA3_PERIOD;
         ts.tv_nsec += (ECU_DATA3_PERIOD - (int)ECU_DATA3_PERIOD) * 10000000000;
         pthread_mutex_lock(&m);
         pthread_cond_timedwait(&c, &m, &ts);
         pthread_mutex_unlock(&m);
-        // sleep(ECU_DATA3_PERIOD);
+        */
+        usleep(ECU_DATA3_PERIOD);
         ecu_data3_update(&brake_active, &kickdown_active, &cruise_active);
     }
 
@@ -729,7 +732,8 @@ void *ecu_data4_send_routine(void *args)
         pthread_mutex_unlock(&write_mut);
         struct timeval tval_timestp;
         gettimeofday(&tval_timestp, NULL);
-        can_print_message(msg, tval_timestp, 1) if (status != CAN_ERR_OK)
+        can_print_message(msg, tval_timestp, 1);
+        if (status != CAN_ERR_OK)
             printf("error sending CAN frame \n");
         /*
         timespec_get(&ts, TIME_UTC);
@@ -1512,9 +1516,6 @@ int main(int argc, char *argv[])
     pthread_t replay_thread;
     pthread_create(&replay_thread, NULL, replay_attack_routine, &handle);
 
-    pthread_t suspend_thread;
-    pthread_create(&suspend_thread, NULL, sas_data_send_routine, &handle);
-
     gui_status = g_application_run(G_APPLICATION(app), argc, argv);
 
     pthread_join(ecu_data1_thread, NULL);
@@ -1533,7 +1534,6 @@ int main(int argc, char *argv[])
     pthread_join(receive_thd, NULL);
     pthread_join(fuzz_thread, NULL);
     pthread_join(replay_thread, NULL);
-    pthread_join(suspend_thread, NULL);
     pthread_join(delay_msrmnt_thread, NULL);
     pthread_join(stop_thread, NULL);
 
