@@ -455,21 +455,21 @@ void *sas_data_send_routine(void *args)
             printf("error sending CAN frame \n");
         else // printf("Sent frame 0x180\n");
             gettimeofday(&tval_end, NULL);
-        //printf("180 time elapsed between 2 sends : %ld us", (tval_end.tv_usec - tval_start.tv_usec));
+        // printf("180 time elapsed between 2 sends : %ld us", (tval_end.tv_usec - tval_start.tv_usec));
         gettimeofday(&tval_start, NULL);
-        /*timespec_get(&ts, TIME_UTC);
 
-        //Stock chaque dernière trame recue pour utilisation dans attack replay
+        // Stock chaque dernière trame recue pour utilisation dans attack replay
         pthread_mutex_lock(&write_mut);
         replay_msg = msg;
         pthread_mutex_unlock(&write_mut);
 
-        timespec_get(&ts, TIME_UTC);
+        /*timespec_get(&ts, TIME_UTC);
         ts.tv_sec += (int)SAS_DATA_PERIOD;
         ts.tv_nsec += (SAS_DATA_PERIOD - (int)SAS_DATA_PERIOD) * 10000000000;
         pthread_mutex_lock(&m);
         pthread_cond_timedwait(&c, &m, &ts);
-        pthread_mutex_unlock(&m);*/
+        pthread_mutex_unlock(&m);
+        */
         usleep(SAS_DATA_PERIOD);
         sas_data_update(&angle, &speed);
     }
@@ -556,7 +556,7 @@ void *ecu_data1_send_routine(void *args)
             printf("error sending CAN frame \n");
         else // printf("Sent frame 0x1a0\n");
             gettimeofday(&tval_end, NULL);
-        //printf("1a0 time elapsed between 2 sends : %ld us", (tval_end.tv_usec - tval_start.tv_usec));
+        // printf("1a0 time elapsed between 2 sends : %ld us", (tval_end.tv_usec - tval_start.tv_usec));
         gettimeofday(&tval_start, NULL);
         /*
         timespec_get(&ts, TIME_UTC);
@@ -607,7 +607,7 @@ void *ecu_data2_send_routine(void *args)
             printf("error sending CAN frame \n");
         else // printf("Sent frame 0x1c0\n");
             gettimeofday(&tval_end, NULL);
-        //printf("1c0 time elapsed between 2 sends : %ld us", (tval_end.tv_usec - tval_start.tv_usec));
+        // printf("1c0 time elapsed between 2 sends : %ld us", (tval_end.tv_usec - tval_start.tv_usec));
         gettimeofday(&tval_start, NULL);
         /*
         timespec_get(&ts, TIME_UTC);
@@ -649,7 +649,7 @@ void *ecu_data3_update(double *brake_active, double *kickdown_active, double *cr
     // Pour le moment on laisse le régulteur de vitesse toujours en OFF
     *cruise_active = 0;
 
-    //printf("Kickdown = %f / BrakeActive = %f \n", *kickdown_active, *brake_active);
+    // printf("Kickdown = %f / BrakeActive = %f \n", *kickdown_active, *brake_active);
 }
 
 void *ecu_data3_send_routine(void *args)
@@ -677,7 +677,9 @@ void *ecu_data3_send_routine(void *args)
         pthread_mutex_lock(&write_mut);
         TCAN_STATUS status = CAN_Write(handle, &msg);
         pthread_mutex_unlock(&write_mut);
-        if (status != CAN_ERR_OK)
+        struct timeval tval_timestp;
+        gettimeofday(&tval_timestp, NULL);
+        can_print_message(msg, tval_timestp, 1) if (status != CAN_ERR_OK)
             printf("error sending CAN frame \n");
         timespec_get(&ts, TIME_UTC);
         ts.tv_sec += (int)ECU_DATA3_PERIOD;
@@ -725,15 +727,19 @@ void *ecu_data4_send_routine(void *args)
         pthread_mutex_lock(&write_mut);
         TCAN_STATUS status = CAN_Write(handle, &msg);
         pthread_mutex_unlock(&write_mut);
-        if (status != CAN_ERR_OK)
+        struct timeval tval_timestp;
+        gettimeofday(&tval_timestp, NULL);
+        can_print_message(msg, tval_timestp, 1) if (status != CAN_ERR_OK)
             printf("error sending CAN frame \n");
+        /*
         timespec_get(&ts, TIME_UTC);
         ts.tv_sec += (int)ECU_DATA4_PERIOD;
         ts.tv_nsec += (ECU_DATA4_PERIOD - (int)ECU_DATA4_PERIOD) * 10000000000;
         pthread_mutex_lock(&m);
         pthread_cond_timedwait(&c, &m, &ts);
         pthread_mutex_unlock(&m);
-        // sleep(ECU_DATA4_PERIOD);
+        */
+        usleep(ECU_DATA4_PERIOD);
         ecu_data4_update(&ect, &iat);
     }
 
@@ -830,15 +836,20 @@ void *tcu_data2_send_routine(void *args)
         pthread_mutex_lock(&write_mut);
         TCAN_STATUS status = CAN_Write(handle, &msg);
         pthread_mutex_unlock(&write_mut);
+        struct timeval tval_timestp;
+        gettimeofday(&tval_timestp, NULL);
+        can_print_message(msg, tval_timestp, 1);
         if (status != CAN_ERR_OK)
             printf("error sending CAN frame \n");
+        /*
         timespec_get(&ts, TIME_UTC);
         ts.tv_sec += (int)TCU_DATA2_PERIOD;
         ts.tv_nsec += (TCU_DATA2_PERIOD - (int)TCU_DATA2_PERIOD) * 10000000000;
         pthread_mutex_lock(&m);
         pthread_cond_timedwait(&c, &m, &ts);
         pthread_mutex_unlock(&m);
-        // sleep(TCU_DATA2_PERIOD);
+        */
+        usleep(TCU_DATA2_PERIOD);
         tcu_data2_update(&tot, &shaft_speed);
     }
 
@@ -931,15 +942,20 @@ void *esp_data1_send_routine(void *args)
         pthread_mutex_lock(&write_mut);
         TCAN_STATUS status = CAN_Write(handle, &msg);
         pthread_mutex_unlock(&write_mut);
+        struct timeval tval_timestp;
+        gettimeofday(&tval_timestp, NULL);
+        can_print_message(msg, tval_timestp, 1);
         if (status != CAN_ERR_OK)
             printf("error sending CAN frame \n");
+        /*
         timespec_get(&ts, TIME_UTC);
         ts.tv_sec += (int)TCU_DATA1_PERIOD;
         ts.tv_nsec += (TCU_DATA1_PERIOD - (int)TCU_DATA1_PERIOD) * 10000000000;
         pthread_mutex_lock(&m);
         pthread_cond_timedwait(&c, &m, &ts);
         pthread_mutex_unlock(&m);
-        // sleep(ESP_DATA1_PERIOD);
+        */
+        usleep(ESP_DATA1_PERIOD);
     }
 
     return NULL;
@@ -1048,15 +1064,20 @@ void *abs_wheel_speed_routine(void *args)
         pthread_mutex_lock(&write_mut);
         TCAN_STATUS status = CAN_Write(handle, &msg);
         pthread_mutex_unlock(&write_mut);
+        struct timeval tval_timestp;
+        gettimeofday(&tval_timestp, NULL);
+        can_print_message(msg, tval_timestp, 1);
         if (status != CAN_ERR_OK)
             printf("error sending CAN frame \n");
+        /*
         timespec_get(&ts, TIME_UTC);
         ts.tv_sec += (int)ABS_WHEEL_PERIOD;
         ts.tv_nsec += (ABS_WHEEL_PERIOD - (int)ABS_WHEEL_PERIOD) * 10000000000;
         pthread_mutex_lock(&m);
         pthread_cond_timedwait(&c, &m, &ts);
         pthread_mutex_unlock(&m);
-        // sleep(ABS_WHEEL_PERIOD);
+        */
+        usleep(ABS_WHEEL_PERIOD);
         abs_wheel_speed_update(&front_left_flag, &front_left_speed, &front_right_flag, &front_right_speed, &rear_left_flag, &rear_left_speed, &rear_right_flag, &rear_right_speed);
     }
 
@@ -1224,6 +1245,9 @@ void *fuzz_ecu2_node(void *args) // Simulation de l'attaque fuzz sur le réseau 
             pthread_mutex_lock(&write_mut);   // Verrouille le mutex write_mut avant d'envoyer le message
             status = CAN_Write(handle, &msg); // Envoie le message CAN
             pthread_mutex_unlock(&write_mut); // Déverrouille le mutex write_mut après l'envoi
+            struct timeval tval_timestp;
+            gettimeofday(&tval_timestp, NULL);
+            can_print_message(msg, tval_timestp, 1);
 
             if (status != CAN_ERR_OK)                 // Vérifie le statut de l'envoi
                 printf("error sending CAN frame \n"); // Affiche un message d'erreur si l'envoi a échoué
@@ -1267,6 +1291,9 @@ void *replay_attack_routine(void *args)
             pthread_mutex_lock(&write_mut);
             TCAN_STATUS status = CAN_Write(handle, &msg);
             pthread_mutex_unlock(&write_mut);
+            struct timeval tval_timestp;
+            gettimeofday(&tval_timestp, NULL);
+            can_print_message(msg, tval_timestp, 1);
             if (status != CAN_ERR_OK)
             {
                 printf("error sending CAN frame \n");
@@ -1507,7 +1534,7 @@ int main(int argc, char *argv[])
     pthread_join(fuzz_thread, NULL);
     pthread_join(replay_thread, NULL);
     pthread_join(suspend_thread, NULL);
-    pthread_join(delay_msrmnt_thread,NULL);
+    pthread_join(delay_msrmnt_thread, NULL);
     pthread_join(stop_thread, NULL);
 
     status = CAN_Close(handle);
