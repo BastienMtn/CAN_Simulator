@@ -1296,7 +1296,7 @@ void *delay_msrmnt_routine(void *args)
     };
     while (!stop_threads)
     {
-        int wait = ((float)rand() / RAND_MAX) * 1000000000;
+        int wait = ((float)rand() / RAND_MAX) * 1000000;
         usleep(wait);
         pthread_mutex_lock(&write_mut);
         TCAN_STATUS status = CAN_Write(handle, &msg);
@@ -1307,7 +1307,7 @@ void *delay_msrmnt_routine(void *args)
         usleep(1000000 - wait);
 
         msg.Id = 0x200;
-        wait = ((float)rand() / RAND_MAX) * 1000000000;
+        wait = ((float)rand() / RAND_MAX) * 1000000;
         usleep(wait);
         pthread_mutex_lock(&write_mut);
         status = CAN_Write(handle, &msg);
@@ -1318,7 +1318,7 @@ void *delay_msrmnt_routine(void *args)
         usleep(1000000 - wait);
 
         msg.Id = 0x400;
-        wait = ((float)rand() / RAND_MAX) * 1000000000;
+        wait = ((float)rand() / RAND_MAX) * 1000000;
         usleep(wait);
         pthread_mutex_lock(&write_mut);
         status = CAN_Write(handle, &msg);
@@ -1329,7 +1329,7 @@ void *delay_msrmnt_routine(void *args)
         usleep(1000000 - wait);
 
         msg.Id = 0x600;
-        wait = ((float)rand() / RAND_MAX) * 1000000000;
+        wait = ((float)rand() / RAND_MAX) * 1000000;
         usleep(wait);
         pthread_mutex_lock(&write_mut);
         status = CAN_Write(handle, &msg);
@@ -1340,7 +1340,7 @@ void *delay_msrmnt_routine(void *args)
         usleep(1000000 - wait);
 
         msg.Id = 0x7FF;
-        wait = ((float)rand() / RAND_MAX) * 1000000000;
+        wait = ((float)rand() / RAND_MAX) * 1000000;
         usleep(wait);
         pthread_mutex_lock(&write_mut);
         status = CAN_Write(handle, &msg);
@@ -1354,7 +1354,7 @@ void *delay_msrmnt_routine(void *args)
 
 void *stop_system_routine()
 {
-    usleep(6000000);
+    usleep(60000000);
     stop_threads = true;
 }
 
