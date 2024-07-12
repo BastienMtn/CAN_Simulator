@@ -1,27 +1,27 @@
 #define OPERATION_MODE Normal
 
 // Defines for nodes' periods
-// Variable to define the period between two sends of sas, in seconds
+// Variable to define the period between two sends of sas, in useconds
 #define SAS_DATA_PERIOD 100000
-// Variable to define the period between two sends of ECU1, in seconds
+// Variable to define the period between two sends of ECU1, in useconds
 #define ECU_DATA1_PERIOD 100000
-// Variable to define the period between two sends of ECU2, in seconds
+// Variable to define the period between two sends of ECU2, in useconds
 #define ECU_DATA2_PERIOD 100000
-// Variable to define the period between two sends of ECU3, in seconds
+// Variable to define the period between two sends of ECU3, in useconds
 #define ECU_DATA3_PERIOD 100000
-// Variable to define the period between two sends of ECU4, in seconds
+// Variable to define the period between two sends of ECU4, in useconds
 #define ECU_DATA4_PERIOD 100000
-// Variable to define the period between two sends of TCU1, in seconds
+// Variable to define the period between two sends of TCU1, in useconds
 #define TCU_DATA1_PERIOD 100000
-// Variable to define the period between two sends of TCU2, in seconds
+// Variable to define the period between two sends of TCU2, in useconds
 #define TCU_DATA2_PERIOD 100000
-// Variable to define the period between two sends of TCU3, in seconds
+// Variable to define the period between two sends of TCU3, in useconds
 #define TCU_DATA3_PERIOD 200000
-// Variable to define the period between two sends of ESP1, in seconds
+// Variable to define the period between two sends of ESP1, in useconds
 #define ESP_DATA1_PERIOD 100000
-// Variable to define the period between two sends of ESP2, in seconds
+// Variable to define the period between two sends of ESP2, in useconds
 #define ESP_DATA2_PERIOD 400000
-// Variable to define the period between two sends of ABS, in seconds
+// Variable to define the period between two sends of ABS, in useconds
 #define ABS_WHEEL_PERIOD 100000
 
 // This defines are the limits given by the DBC file of the vehicle, but they were not included in the vehicle.h files
@@ -43,12 +43,12 @@
 #define ATTACK_FAKE_TPS_MODE Fast
 
 // This attack has for objective to DOS all lower priority messages. Most effective if Id = 1
-#define ATTACK_DOS_PERIOD 0.1f
+#define ATTACK_DOS_PERIOD 1000
 #define ATTACK_DOS_ID 1
 
 // Attack fuzzing. We can change only the data's position (mode 0), or 8 bytes of data (mode 1) 
-#define ATTACK_FUZZ_PERIOD 0.1f
+#define ATTACK_FUZZ_PERIOD 100000
 #define ATTACK_FUZZ_MOD 0 
 
 // Attack replay
-#define ATTACK_REPLAY_PERIOD 0.1f
+#define ATTACK_REPLAY_PERIOD SAS_DATA_PERIOD
