@@ -52,7 +52,7 @@ void can_print_message(CAN_MSG message, struct timeval tval_timestp, int dir)
     printf("{\n");
     printf("    \"timestamp\": %ld.%3ld,\n", tval_timestp.tv_sec, tval_timestp.tv_usec);
     printf("    \"direction\": %s,\n", dir == 0 ? "\"received\"" : "\"sent\"");
-    printf("    \"can_id\": \"0x%03X\",\n", message.Id & 0x7FF);
+    printf("    \"can_id\": \"0x%03lX\",\n", message.Id & 0x7FF);
     printf("    \"extended_id\": \"0x%05lX\",\n", message.Id >> 11);
     printf("    \"ide\": %u,\n", !(message.Flags & CAN_FLAGS_STANDARD));
     printf("    \"rtr\": %u,\n", message.Flags & CAN_FLAGS_REMOTE);
