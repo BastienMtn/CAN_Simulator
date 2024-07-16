@@ -18,7 +18,11 @@
 
 #include "opel_omega_2001.h"
 
+#ifdef SOCKET
+#include "socketCAN.h"
+#else
 #include "LinuxCAN_API.h"
+#endif
 
 // TODO - Add aperiodic messages
 // TODO - Add latency check with remote request frames
@@ -288,7 +292,11 @@ TCAN_HANDLE can_init()
     TCAN_HANDLE handle;
     TCAN_STATUS status;
 
+#ifdef SOCKET
+    CHAR *comPort = "vcan0";
+#else
     CHAR *comPort = "/dev/ttyUSB0";
+#endif
     CHAR *szBitrate = "250";
     CHAR *acceptance_code = "1FFFFFFF";
     CHAR *acceptance_mask = "00000000";
