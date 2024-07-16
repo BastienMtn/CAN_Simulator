@@ -116,7 +116,7 @@ TCAN_STATUS  CAN_Read(TCAN_HANDLE Handle, CAN_MSG *Buf){
 
 // The return value is one of CAN_STATUS
 TCAN_STATUS  CAN_Version(TCAN_HANDLE Handle,CHAR *buf){
-    *buf = *"socketCAN";
+    strcpy(buf, "socketCAN\0");
     return CAN_ERR_OK;
 }
 
