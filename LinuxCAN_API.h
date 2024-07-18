@@ -1,9 +1,7 @@
 #ifndef LINUXCAN_API_INCLUDED
 #define LINUXCAN_API_INCLUDED
-
 #include <semaphore.h>
 #include "CAN.h"
-
 
 #ifdef __cplusplus
 extern "C"
@@ -28,6 +26,5 @@ TCAN_STATUS  CAN_Status(TCAN_HANDLE Handle);
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif // LINUXCAN_API_INCLUDED

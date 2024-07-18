@@ -1,10 +1,10 @@
 To compile the simulator :
 
 Driver version: 
-```gcc main.c opel_omega_2001.c 64bit/libLinuxCAN_API.a -lm `pkg-config --cflags --libs gtk4` -lpthread -o simulator```
+```gcc main.c opel_omega_2001.c ui.c 64bit/libLinuxCAN_API.a -lm `pkg-config --cflags --libs gtk4` -lpthread -o simulator```
 
 SocketCAN version:
-```gcc main.c opel_omega_2001.c socketCAN.c -lm `pkg-config --cflags --libs gtk4` -lpthread -DSOCKET -o simulator```
+```gcc main.c opel_omega_2001.c ui.c socketCAN.c -lm `pkg-config --cflags --libs gtk4` -lpthread -DSOCKETMODE -o simulator```
 
 To run the simulator 
 
@@ -29,7 +29,7 @@ To use the SocketCAN version:
       sudo modprobe slcan
       sudo modprobe can
       sudo slcand -o -c -s5 -S3000000 /dev/ttyUSB0 slcan0
-      ip link set can0 txqueuelen 1000
+      sudo ip link set slcan0 txqueuelen 1000
       sudo ip link set slcan0 up
       echo Serial CAN Bus has been opened!
       ```

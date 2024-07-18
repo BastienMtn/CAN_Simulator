@@ -19,7 +19,7 @@
 
 #include "opel_omega_2001.h"
 
-#ifdef SOCKET
+#ifdef SOCKETMODE
 #include "socketCAN.h"
 #else
 #include "LinuxCAN_API.h"
@@ -80,7 +80,7 @@ TCAN_HANDLE can_init()
     TCAN_HANDLE handle;
     TCAN_STATUS status;
 
-#ifdef SOCKET
+#ifdef SOCKETMODE
     CHAR *comPort = "vcan0";
 #else
     CHAR *comPort = "/dev/ttyUSB0";
