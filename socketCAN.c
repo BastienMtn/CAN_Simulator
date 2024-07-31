@@ -1,5 +1,6 @@
 #include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -30,8 +31,8 @@ TCAN_HANDLE CAN_Open(CHAR *ComPort, CHAR *szBitrate, CHAR *acceptance_code, CHAR
     addr.can_ifindex = ifr.ifr_ifindex;
 
     struct can_filter rfilter[1];
-    rfilter[0].can_id   = *acceptance_code;
-    rfilter[0].can_mask = *acceptance_mask;
+    rfilter[0].can_id   = (u_int32_t)strtol(acceptance_code, NULL, 16);
+    rfilter[0].can_mask = (u_int32_t)strtol(acceptance_mask, NULL, 16);
     setsockopt(s, SOL_CAN_RAW, CAN_RAW_FILTER, &rfilter, sizeof(rfilter));
 
     switch (Mode) {
