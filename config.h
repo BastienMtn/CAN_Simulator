@@ -1,28 +1,28 @@
 #define OPERATION_MODE Normal
 
 // Defines for nodes' periods
-// Variable to define the period between two sends of sas, in useconds
-#define SAS_DATA_PERIOD 100000
+// Variable to define the period between two sends of SAS, in useconds
+#define SAS_DATA_PERIOD 10000
 // Variable to define the period between two sends of ECU1, in useconds
-#define ECU_DATA1_PERIOD 100000
+#define ECU_DATA1_PERIOD 10000
 // Variable to define the period between two sends of ECU2, in useconds
-#define ECU_DATA2_PERIOD 100000
+#define ECU_DATA2_PERIOD 10000
 // Variable to define the period between two sends of ECU3, in useconds
-#define ECU_DATA3_PERIOD 100000
+#define ECU_DATA3_PERIOD 10000
 // Variable to define the period between two sends of ECU4, in useconds
-#define ECU_DATA4_PERIOD 100000
+#define ECU_DATA4_PERIOD 10000
 // Variable to define the period between two sends of TCU1, in useconds
-#define TCU_DATA1_PERIOD 100000
+#define TCU_DATA1_PERIOD 10000
 // Variable to define the period between two sends of TCU2, in useconds
-#define TCU_DATA2_PERIOD 100000
+#define TCU_DATA2_PERIOD 10000
 // Variable to define the period between two sends of TCU3, in useconds
-#define TCU_DATA3_PERIOD 200000
+#define TCU_DATA3_PERIOD 20000
 // Variable to define the period between two sends of ESP1, in useconds
-#define ESP_DATA1_PERIOD 100000
+#define ESP_DATA1_PERIOD 10000
 // Variable to define the period between two sends of ESP2, in useconds
-#define ESP_DATA2_PERIOD 400000
+#define ESP_DATA2_PERIOD 40000
 // Variable to define the period between two sends of ABS, in useconds
-#define ABS_WHEEL_PERIOD 100000
+#define ABS_WHEEL_PERIOD 10000
 
 // This defines are the limits given by the DBC file of the vehicle, but they were not included in the vehicle.h files
 // Maybe add an upgrade to put in a separate file
