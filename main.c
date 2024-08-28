@@ -54,7 +54,7 @@ void can_print_message(CAN_MSG message, struct timeval tval_timestp, int dir)
     pthread_mutex_lock(&log_mut);
     // Print the JSON representation of the CAN message
     printf("{\n");
-    printf("    \"timestamp\": %ld.%3ld,\n", tval_timestp.tv_sec, tval_timestp.tv_usec);
+    printf("    \"timestamp\": %ld.%06ld,\n", tval_timestp.tv_sec, tval_timestp.tv_usec);
     printf("    \"direction\": %s,\n", dir == 0 ? "\"received\"" : "\"sent\"");
     printf("    \"can_id\": \"0x%03lX\",\n", message.Id & 0x7FF);
     printf("    \"extended_id\": \"0x%05lX\",\n", message.Id >> 11);
@@ -72,6 +72,7 @@ void can_print_message(CAN_MSG message, struct timeval tval_timestp, int dir)
     }
     printf("]\n");
     printf("},\n");
+    fflush(stdout);
     pthread_mutex_unlock(&log_mut);
 }
 
@@ -131,7 +132,7 @@ void *receive_routine(void *args)
             gettimeofday(&tval_timestp, NULL);
 #ifdef RXLOG
             can_print_message(recvMSG, tval_timestp, 0);
-            snprintf(text, sizeof(text), "Time = %ld.%3ld | Read ID=0x%lx, Type=%s, DLC=%d, FrameType=%s, Data=", tval_timestp.tv_sec, tval_timestp.tv_usec,
+            snprintf(text, sizeof(text), "Time = %ld.%06ld | Read ID=0x%lx, Type=%s, DLC=%d, FrameType=%s, Data=", tval_timestp.tv_sec, tval_timestp.tv_usec,
                      recvMSG.Id, (recvMSG.Flags & CAN_FLAGS_STANDARD) ? "STD" : "EXT",
                      recvMSG.Size, (recvMSG.Flags & CAN_FLAGS_REMOTE) ? "REMOTE" : "DATA");
             // Find the length of the destination string
@@ -1338,7 +1339,7 @@ int main(int argc, char *argv[])
 
     pthread_t esp_data2_thread;
     pthread_create(&esp_data2_thread, NULL, esp_data2_send_routine, &handle);
-    
+
     pthread_t abs_wheel_thread;
     pthread_create(&abs_wheel_thread, NULL, abs_wheel_speed_routine, &handle);
     /*
