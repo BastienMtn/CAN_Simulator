@@ -1312,53 +1312,33 @@ int main(int argc, char *argv[])
     pthread_t sas_thread;
     pthread_create(&sas_thread, NULL, sas_data_send_routine, &handle);
 
-    usleep(30000);
-
     pthread_t ecu_data1_thread;
     pthread_create(&ecu_data1_thread, NULL, ecu_data1_send_routine, &handle);
-
-    usleep(30000);
 
     pthread_t ecu_data2_thread;
     pthread_create(&ecu_data2_thread, NULL, ecu_data2_send_routine, &handle);
 
-    usleep(30000);
-
     pthread_t ecu_data3_thread;
     pthread_create(&ecu_data3_thread, NULL, ecu_data3_send_routine, &handle);
-
-    usleep(30000);
 
     pthread_t ecu_data4_thread;
     pthread_create(&ecu_data4_thread, NULL, ecu_data4_send_routine, &handle);
 
-    usleep(30000);
-
     pthread_t tcu_data1_thread;
     pthread_create(&tcu_data1_thread, NULL, tcu_data1_send_routine, &handle);
-
-    usleep(30000);
 
     pthread_t tcu_data2_thread;
     pthread_create(&tcu_data2_thread, NULL, tcu_data2_send_routine, &handle);
 
-    usleep(30000);
-
     pthread_t tcu_data3_thread;
     pthread_create(&tcu_data3_thread, NULL, tcu_data3_send_routine, &handle);
-
-    usleep(30000);
 
     pthread_t esp_data1_thread;
     pthread_create(&esp_data1_thread, NULL, esp_data1_send_routine, &handle);
 
-    usleep(30000);
-
     pthread_t esp_data2_thread;
     pthread_create(&esp_data2_thread, NULL, esp_data2_send_routine, &handle);
-
-    usleep(30000);
-
+    
     pthread_t abs_wheel_thread;
     pthread_create(&abs_wheel_thread, NULL, abs_wheel_speed_routine, &handle);
     /*
@@ -1399,10 +1379,12 @@ int main(int argc, char *argv[])
     pthread_join(abs_wheel_thread, NULL);
     pthread_join(sas_thread, NULL);
     pthread_join(receive_thd, NULL);
+#ifdef DelayMeasurement
+    pthread_join(delay_msrmnt_thread, NULL);
+#endif
     /*
     pthread_join(fuzz_thread, NULL);
     pthread_join(replay_thread, NULL);
-    pthread_join(delay_msrmnt_thread, NULL);
     pthread_join(attack_dos_thread, NULL);
     pthread_join(attack_tps_thread, NULL);
     */
