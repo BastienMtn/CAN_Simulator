@@ -1177,6 +1177,7 @@ void *delay_msrmnt_routine(void *args)
     };
     while (!stop_threads)
     {
+        msg.Id = 0x0;
         int wait = ((float)rand() / RAND_MAX) * 1000000;
         usleep(wait);
         pthread_mutex_lock(&write_mut);
