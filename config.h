@@ -1,4 +1,7 @@
 #define OPERATION_MODE Normal
+//#define TXLOG
+#define RXLOG
+#define DelayMeasurement
 
 // Defines for nodes' periods
 // Variable to define the period between two sends of SAS, in useconds

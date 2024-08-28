@@ -129,6 +129,7 @@ void *receive_routine(void *args)
         {
             struct timeval tval_timestp;
             gettimeofday(&tval_timestp, NULL);
+#ifdef RXLOG
             can_print_message(recvMSG, tval_timestp, 0);
             snprintf(text, sizeof(text), "Time = %ld.%3ld | Read ID=0x%lx, Type=%s, DLC=%d, FrameType=%s, Data=", tval_timestp.tv_sec, tval_timestp.tv_usec,
                      recvMSG.Id, (recvMSG.Flags & CAN_FLAGS_STANDARD) ? "STD" : "EXT",
@@ -154,15 +155,9 @@ void *receive_routine(void *args)
             gpointer p = &prmtrs;
 
             g_idle_add(gui_print, p);
-            // gui_print(text, strlen(text));
-            // printf("\n");
-            if (recvMSG.Id == 0x180)
-            {
-                struct opel_omega_2001_sas_data_t sas_msg;
-                opel_omega_2001_sas_data_unpack(&sas_msg, recvMSG.Data, recvMSG.Size);
-                // printf("Message is from SAS, Angle = %f and Speed = %f \n", opel_omega_2001_sas_data_steering_angle_decode(sas_msg.steering_angle), opel_omega_2001_sas_data_steering_speed_decode(sas_msg.steering_speed));
-            }
-            // break;
+// gui_print(text, strlen(text));
+// printf("\n");
+#endif
         }
     }
     return NULL;
@@ -247,7 +242,9 @@ void *sas_data_send_routine(void *args)
         pthread_mutex_unlock(&write_mut);
         struct timeval tval_timestp;
         gettimeofday(&tval_timestp, NULL);
+#ifdef TXLOG
         can_print_message(msg, tval_timestp, 1);
+#endif
         if (status != CAN_ERR_OK)
             printf("error sending CAN frame \n");
         // else
@@ -344,7 +341,9 @@ void *ecu_data1_send_routine(void *args)
         pthread_mutex_unlock(&write_mut);
         struct timeval tval_timestp;
         gettimeofday(&tval_timestp, NULL);
+#ifdef TXLOG
         can_print_message(msg, tval_timestp, 1);
+#endif
         if (status != CAN_ERR_OK)
             printf("error sending CAN frame \n");
         // else
@@ -397,7 +396,9 @@ void *ecu_data2_send_routine(void *args)
         pthread_mutex_unlock(&write_mut);
         struct timeval tval_timestp;
         gettimeofday(&tval_timestp, NULL);
+#ifdef TXLOG
         can_print_message(msg, tval_timestp, 1);
+#endif
         if (status != CAN_ERR_OK)
             printf("error sending CAN frame \n");
         // else
@@ -476,7 +477,9 @@ void *ecu_data3_send_routine(void *args)
         pthread_mutex_unlock(&write_mut);
         struct timeval tval_timestp;
         gettimeofday(&tval_timestp, NULL);
+#ifdef TXLOG
         can_print_message(msg, tval_timestp, 1);
+#endif
         if (status != CAN_ERR_OK)
             printf("error sending CAN frame \n");
 
@@ -530,7 +533,9 @@ void *ecu_data4_send_routine(void *args)
         pthread_mutex_unlock(&write_mut);
         struct timeval tval_timestp;
         gettimeofday(&tval_timestp, NULL);
+#ifdef TXLOG
         can_print_message(msg, tval_timestp, 1);
+#endif
         if (status != CAN_ERR_OK)
             printf("error sending CAN frame \n");
 
@@ -584,7 +589,9 @@ void *tcu_data1_send_routine(void *args)
         pthread_mutex_unlock(&write_mut);
         struct timeval tval_timestp;
         gettimeofday(&tval_timestp, NULL);
+#ifdef TXLOG
         can_print_message(msg, tval_timestp, 1);
+#endif
         if (status != CAN_ERR_OK)
             printf("error sending CAN frame \n");
         // else
@@ -643,7 +650,9 @@ void *tcu_data2_send_routine(void *args)
         pthread_mutex_unlock(&write_mut);
         struct timeval tval_timestp;
         gettimeofday(&tval_timestp, NULL);
+#ifdef TXLOG
         can_print_message(msg, tval_timestp, 1);
+#endif
         if (status != CAN_ERR_OK)
             printf("error sending CAN frame \n");
 
@@ -701,7 +710,9 @@ void *tcu_data3_send_routine(void *args)
         pthread_mutex_unlock(&write_mut);
         struct timeval tval_timestp;
         gettimeofday(&tval_timestp, NULL);
+#ifdef TXLOG
         can_print_message(msg, tval_timestp, 1);
+#endif
         if (status != CAN_ERR_OK)
             printf("error sending CAN frame \n");
         // else
@@ -752,7 +763,9 @@ void *esp_data1_send_routine(void *args)
         pthread_mutex_unlock(&write_mut);
         struct timeval tval_timestp;
         gettimeofday(&tval_timestp, NULL);
+#ifdef TXLOG
         can_print_message(msg, tval_timestp, 1);
+#endif
         if (status != CAN_ERR_OK)
             printf("error sending CAN frame \n");
 
@@ -795,7 +808,9 @@ void *esp_data2_send_routine(void *args)
         pthread_mutex_unlock(&write_mut);
         struct timeval tval_timestp;
         gettimeofday(&tval_timestp, NULL);
+#ifdef TXLOG
         can_print_message(msg, tval_timestp, 1);
+#endif
         if (status != CAN_ERR_OK)
             printf("error sending CAN frame \n");
         // else
@@ -877,7 +892,9 @@ void *abs_wheel_speed_routine(void *args)
         pthread_mutex_unlock(&write_mut);
         struct timeval tval_timestp;
         gettimeofday(&tval_timestp, NULL);
+#ifdef TXLOG
         can_print_message(msg, tval_timestp, 1);
+#endif
         if (status != CAN_ERR_OK)
             printf("error sending CAN frame \n");
 
@@ -941,7 +958,9 @@ void *fake_ecu2_node(void *args)
             pthread_mutex_unlock(&write_mut);
             struct timeval tval_timestp;
             gettimeofday(&tval_timestp, NULL);
+#ifdef TXLOG
             can_print_message(msg, tval_timestp, 1);
+#endif
             if (status != CAN_ERR_OK)
                 printf("error sending CAN frame \n");
             // else printf("Sent frame 0x1c0\n");
@@ -993,7 +1012,9 @@ void *dos_attack_node(void *args)
             pthread_mutex_unlock(&write_mut);
             struct timeval tval_timestp;
             gettimeofday(&tval_timestp, NULL);
+#ifdef TXLOG
             can_print_message(msg, tval_timestp, 1);
+#endif
             if (status != CAN_ERR_OK)
                 printf("error sending CAN frame \n");
             else
@@ -1067,7 +1088,9 @@ void *fuzz_ecu2_node(void *args) // Simulation de l'attaque fuzz sur le réseau 
             pthread_mutex_unlock(&write_mut); // Déverrouille le mutex write_mut après l'envoi
             struct timeval tval_timestp;
             gettimeofday(&tval_timestp, NULL);
+#ifdef TXLOG
             can_print_message(msg, tval_timestp, 1);
+#endif
 
             if (status != CAN_ERR_OK)                 // Vérifie le statut de l'envoi
                 printf("error sending CAN frame \n"); // Affiche un message d'erreur si l'envoi a échoué
@@ -1117,7 +1140,9 @@ void *replay_attack_routine(void *args)
             pthread_mutex_unlock(&write_mut);
             struct timeval tval_timestp;
             gettimeofday(&tval_timestp, NULL);
+#ifdef TXLOG
             can_print_message(msg, tval_timestp, 1);
+#endif
             if (status != CAN_ERR_OK)
             {
                 printf("error sending CAN frame \n");
@@ -1140,6 +1165,7 @@ void *replay_attack_routine(void *args)
     return NULL;
 }
 
+#ifdef DelayMeasurement
 void *delay_msrmnt_routine(void *args)
 {
     TCAN_HANDLE handle = *(TCAN_HANDLE *)args;
@@ -1206,6 +1232,7 @@ void *delay_msrmnt_routine(void *args)
         usleep(1000000 - wait);
     }
 }
+#endif
 
 void *stop_system_routine()
 {
@@ -1348,11 +1375,12 @@ int main(int argc, char *argv[])
 
     pthread_t flood_thread;
     pthread_create(&flood_thread, NULL, fake_ecu2_node, &handle);
-
-    pthread_t delay_msrmnt_thread;
-    pthread_create(&delay_msrmnt_thread, NULL, delay_msrmnt_routine, &handle);
     */
 
+#ifdef DelayMeasurement
+    pthread_t delay_msrmnt_thread;
+    pthread_create(&delay_msrmnt_thread, NULL, delay_msrmnt_routine, &handle);
+#endif
     pthread_t stop_thread;
     pthread_create(&stop_thread, NULL, stop_system_routine, NULL);
 
