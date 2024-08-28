@@ -1,6 +1,11 @@
+// Defines the operation mode of the system, "Normal", "Loopback" or "ListenOnly"
 #define OPERATION_MODE Normal
+
+// Defines for the logs that are going to be printed 
 //#define TXLOG
 #define RXLOG
+
+// Define for activating the delay measurement routine, which send particular IDs to trigger an answer from fpga, allowing delay measurement on CANBus
 #define DelayMeasurement
 
 // Defines for nodes' periods
