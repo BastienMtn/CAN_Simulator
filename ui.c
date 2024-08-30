@@ -108,7 +108,6 @@ void suspend_bttn_cllbck(GtkWidget *widget, gpointer data)
     suspendOn = !suspendOn;
     if (suspendOn)
     {
-        pthread_cond_signal(&suspend_cond);
         printf("Suspend Attack is On\n");
     }
     else

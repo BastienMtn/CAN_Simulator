@@ -60,3 +60,9 @@
 
 // Attack replay
 #define ATTACK_REPLAY_PERIOD SAS_DATA_PERIOD
+
+// Attack Suspend : Suspend SAS Node (Id 0x180) for 10 seconds from t=25s to t=35s
+//#define ATTACK_SUSPEND
+
+// Attack DOS
+#define ATTACK_DOS

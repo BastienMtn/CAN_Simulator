@@ -30,7 +30,7 @@
 
 pthread_mutex_t write_mut, print_mut, log_mut;
 pthread_mutex_t m, dos_mut, flood_mut, fuzz_mut, replay_mut, suspend_mut;
-pthread_cond_t c, dos_cond, flood_cond, fuzz_cond, replay_cond, suspend_cond;
+pthread_cond_t c, dos_cond, flood_cond, fuzz_cond, replay_cond;
 bool dosOn = false, floodOn = false, fuzzON = false, replayOn = false, suspendOn = false;
 bool stop_threads = false;
 
@@ -104,7 +104,7 @@ TCAN_HANDLE can_init()
     status = CAN_Version(handle, version);
     if (status == CAN_ERR_OK)
     {
-        printf("Opened CAN Channel with handle= %d and version : %s \n", handle, version);
+        printf("[\n");
         char text[512];
         snprintf(text, sizeof(text), "Opened CAN Channel with handle= %d and version : %s \n", handle, version);
         struct print_param prmtrs;
@@ -131,6 +131,7 @@ void *receive_routine(void *args)
             struct timeval tval_timestp;
             gettimeofday(&tval_timestp, NULL);
 #ifdef RXLOG
+            // TODO - Check type print
             can_print_message(recvMSG, tval_timestp, 0);
             snprintf(text, sizeof(text), "Time = %ld.%06ld | Read ID=0x%lx, Type=%s, DLC=%d, FrameType=%s, Data=", tval_timestp.tv_sec, tval_timestp.tv_usec,
                      recvMSG.Id, (recvMSG.Flags & CAN_FLAGS_STANDARD) ? "STD" : "EXT",
@@ -982,6 +983,7 @@ void *fake_ecu2_node(void *args)
     return NULL;
 }
 
+#ifdef ATTACK_DOS
 void *dos_attack_node(void *args)
 {
     while (!stop_threads)
@@ -1036,6 +1038,8 @@ void *dos_attack_node(void *args)
     }
     return NULL;
 }
+#endif
+
 void *fuzz_ecu_data2_update(double *pos, CAN_MSG *msg) // Fonction qui génère nos valeurs aléatoires sur nos 8 octets de données
 {
     if (ATTACK_FUZZ_MOD == 0) // fuzz uniquement la valeur pos
@@ -1238,17 +1242,30 @@ void *delay_msrmnt_routine(void *args)
 
 void *stop_system_routine()
 {
-    // usleep(25000000);
-    // pthread_mutex_lock(&replay_mut);
-    // replayOn = true;
-    // pthread_cond_signal(&replay_cond);
-    // pthread_mutex_unlock(&replay_mut);
-    // usleep(10000000);
-    // pthread_mutex_lock(&replay_mut);
-    // replayOn = false;
-    // pthread_mutex_unlock(&replay_mut);
-    // usleep(25000000);
+#ifdef ATTACK_SUSPEND
+    usleep(25000000);
+    pthread_mutex_lock(&suspend_mut);
+    suspendOn = true;
+    pthread_mutex_unlock(&suspend_mut);
+    usleep(10000000);
+    pthread_mutex_lock(&suspend_mut);
+    suspendOn = false;
+    pthread_mutex_unlock(&replay_mut);
+    usleep(25000000);
+#elif ATTACK_REPLAY
+    usleep(25000000);
+    pthread_mutex_lock(&replay_mut);
+    replayOn = true;
+    pthread_cond_signal(&replay_cond);
+    pthread_mutex_unlock(&replay_mut);
+    usleep(10000000);
+    pthread_mutex_lock(&replay_mut);
+    replayOn = false;
+    pthread_mutex_unlock(&replay_mut);
+    usleep(25000000);
+#else
     usleep(60000000);
+#endif
     stop_threads = true;
 }
 
@@ -1342,12 +1359,15 @@ int main(int argc, char *argv[])
 
     pthread_t abs_wheel_thread;
     pthread_create(&abs_wheel_thread, NULL, abs_wheel_speed_routine, &handle);
+
+#ifdef ATTACK_DOS
+    pthread_t attack_dos_thread;
+    pthread_create(&attack_dos_thread, NULL, dos_attack_node, &handle);
+#endif
+
     /*
     pthread_t attack_tps_thread;
     pthread_create(&attack_tps_thread, NULL, fake_ecu2_node, &handle);
-
-    pthread_t attack_dos_thread;
-    pthread_create(&attack_dos_thread, NULL, dos_attack_node, &handle);
 
     pthread_t fuzz_thread;
     pthread_create(&fuzz_thread, NULL, fuzz_ecu2_node, &handle);
@@ -1383,10 +1403,12 @@ int main(int argc, char *argv[])
 #ifdef DelayMeasurement
     pthread_join(delay_msrmnt_thread, NULL);
 #endif
+#ifdef ATTACK_DOS
+    pthread_join(attack_dos_thread, NULL);
+#endif
     /*
     pthread_join(fuzz_thread, NULL);
     pthread_join(replay_thread, NULL);
-    pthread_join(attack_dos_thread, NULL);
     pthread_join(attack_tps_thread, NULL);
     */
     pthread_join(stop_thread, NULL);
