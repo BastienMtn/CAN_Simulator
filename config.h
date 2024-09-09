@@ -2,11 +2,11 @@
 #define OPERATION_MODE Normal
 
 // Defines for the logs that are going to be printed 
-//#define TXLOG
+#define TXLOG
 #define RXLOG
 
 // Define for activating the delay measurement routine, which send particular IDs to trigger an answer from fpga, allowing delay measurement on CANBus
-#define DelayMeasurement
+//#define DelayMeasurement
 
 // Defines for nodes' periods
 // Variable to define the period between two sends of SAS, in useconds
@@ -45,24 +45,31 @@
 #define TCU3_REAL_MAX_GEAR 5
 
 // Defines for different attacks
+
+// Attack flood
+//#define ATTACK_FLOOD
 // This attack is gonna send fake Throttle Position Sensor data, with a period corresponding to a fraction of the real node.
 // 3 modes : Fast which sends full speed all the time, slow which send 0 speed all the time, and OutOfBound which sends out of bound data to create an internal error.
 #define ATTACK_FAKE_TPS_PERIOD (float)ECU_DATA2_PERIOD/2
 #define ATTACK_FAKE_TPS_MODE Fast
 
+// Attack DOS
 // This attack has for objective to DOS all lower priority messages. Most effective if Id = 1
+//#define ATTACK_DOS
 #define ATTACK_DOS_PERIOD 1000
 #define ATTACK_DOS_ID 1
 
-// Attack fuzzing. We can change only the data's position (mode 0), or 8 bytes of data (mode 1) 
+// Attack fuzzing
+// We can change only the data's position (mode 0), or 8 bytes of data (mode 1)
+#define ATTACK_FUZZ
 #define ATTACK_FUZZ_PERIOD 100000
 #define ATTACK_FUZZ_MOD 0 
 
 // Attack replay
+// This attack stores the last sent message from SAS at the moment of activation, and sends it continuously.
+//#define ATTACK_REPLAY
 #define ATTACK_REPLAY_PERIOD SAS_DATA_PERIOD
 
-// Attack Suspend : Suspend SAS Node (Id 0x180) for 10 seconds from t=25s to t=35s
+// Attack Suspend
+// Suspend SAS Node (Id 0x180) (for 10 seconds from t=25s to t=35s if using prepared scenario and not GUI).
 //#define ATTACK_SUSPEND
-
-// Attack DOS
-#define ATTACK_DOS

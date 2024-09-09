@@ -226,7 +226,7 @@ void *sas_data_send_routine(void *args)
     while (!stop_threads)
     {
         pthread_mutex_lock(&suspend_mut); // Lock pour venir lire l'état de variable
-        while (suspendOn)                 // On check si attack suspend = 1
+        while (suspendOn && !stop_threads)                 // On check si attack suspend = 1
         {
             pthread_mutex_unlock(&suspend_mut); // Unlock pour laisser le bouton changer la variable pour stopper l'attack par ex
             pthread_mutex_lock(&suspend_mut);   // On lock a nouveau pour lire l'état de la variable
@@ -915,6 +915,7 @@ void *abs_wheel_speed_routine(void *args)
     return NULL;
 }
 
+#ifdef ATTACK_FLOOD
 void *fake_ecu2_node(void *args)
 {
     while (!stop_threads)
@@ -952,7 +953,7 @@ void *fake_ecu2_node(void *args)
         opel_omega_2001_ecu_data2_pack(msg.Data, &msg_p, 8);
 
         pthread_mutex_lock(&flood_mut);
-        while (floodOn)
+        while (floodOn && !stop_threads)
         {
             pthread_mutex_unlock(&flood_mut);
             pthread_mutex_lock(&write_mut);
@@ -982,6 +983,7 @@ void *fake_ecu2_node(void *args)
     }
     return NULL;
 }
+#endif
 
 #ifdef ATTACK_DOS
 void *dos_attack_node(void *args)
@@ -1007,7 +1009,7 @@ void *dos_attack_node(void *args)
         TCAN_STATUS status;
 
         pthread_mutex_lock(&dos_mut);
-        while (dosOn)
+        while (dosOn && !stop_threads)
         {
             pthread_mutex_unlock(&dos_mut);
             pthread_mutex_lock(&write_mut);
@@ -1040,6 +1042,7 @@ void *dos_attack_node(void *args)
 }
 #endif
 
+#ifdef ATTACK_FUZZ
 void *fuzz_ecu_data2_update(double *pos, CAN_MSG *msg) // Fonction qui génère nos valeurs aléatoires sur nos 8 octets de données
 {
     if (ATTACK_FUZZ_MOD == 0) // fuzz uniquement la valeur pos
@@ -1077,7 +1080,7 @@ void *fuzz_ecu2_node(void *args) // Simulation de l'attaque fuzz sur le réseau 
 
         pthread_mutex_lock(&fuzz_mut); // Verrouille le mutex fuzz_mut pour accéder à la boucle de fuzzing
 
-        while (fuzzON) // Continue tant que fuzzOn est vrai
+        while (fuzzON && !stop_threads) // Continue tant que fuzzOn est vrai
         {
             pthread_mutex_unlock(&fuzz_mut); // Déverrouille le mutex fuzz_mut pour permettre à d'autres threads de l'utiliser
 
@@ -1118,7 +1121,9 @@ void *fuzz_ecu2_node(void *args) // Simulation de l'attaque fuzz sur le réseau 
     }
     return NULL;
 }
+#endif
 
+#ifdef ATTACK_REPLAY
 void *replay_attack_routine(void *args)
 {
     while (!stop_threads)
@@ -1136,7 +1141,7 @@ void *replay_attack_routine(void *args)
         msg = replay_msg;
         pthread_mutex_unlock(&write_mut);
 
-        while (replayOn)
+        while (replayOn && !stop_threads)
         {
             pthread_mutex_unlock(&replay_mut);
             // Envoi la trame CAN
@@ -1169,6 +1174,7 @@ void *replay_attack_routine(void *args)
 
     return NULL;
 }
+#endif
 
 #ifdef DelayMeasurement
 void *delay_msrmnt_routine(void *args)
@@ -1252,17 +1258,34 @@ void *stop_system_routine()
     suspendOn = false;
     pthread_mutex_unlock(&replay_mut);
     usleep(25000000);
-#elif ATTACK_REPLAY
-    usleep(25000000);
+#elif defined(ATTACK_FLOOD)
+    usleep(5000000);
+    pthread_mutex_lock(&flood_mut);
+    floodOn = true;
+    pthread_cond_signal(&flood_cond);
+    pthread_mutex_unlock(&flood_mut);
+    usleep(55000000);
+#elif defined(ATTACK_DOS)
+    usleep(5000000);
+    pthread_mutex_lock(&dos_mut);
+    dosOn = true;
+    pthread_cond_signal(&dos_cond);
+    pthread_mutex_unlock(&dos_mut);
+    usleep(55000000);
+#elif defined(ATTACK_REPLAY)
+    usleep(5000000);
     pthread_mutex_lock(&replay_mut);
     replayOn = true;
     pthread_cond_signal(&replay_cond);
     pthread_mutex_unlock(&replay_mut);
-    usleep(10000000);
-    pthread_mutex_lock(&replay_mut);
-    replayOn = false;
-    pthread_mutex_unlock(&replay_mut);
-    usleep(25000000);
+    usleep(55000000);
+#elif defined(ATTACK_FUZZ)
+    usleep(5000000);
+    pthread_mutex_lock(&fuzz_mut);
+    fuzzON = true;
+    pthread_cond_signal(&fuzz_cond);
+    pthread_mutex_unlock(&fuzz_mut);
+    usleep(55000000);
 #else
     usleep(60000000);
 #endif
@@ -1365,24 +1388,26 @@ int main(int argc, char *argv[])
     pthread_create(&attack_dos_thread, NULL, dos_attack_node, &handle);
 #endif
 
-    /*
-    pthread_t attack_tps_thread;
-    pthread_create(&attack_tps_thread, NULL, fake_ecu2_node, &handle);
-
+#ifdef ATTACK_FUZZ
     pthread_t fuzz_thread;
     pthread_create(&fuzz_thread, NULL, fuzz_ecu2_node, &handle);
+#endif
 
+#ifdef ATTACK_REPLAY
     pthread_t replay_thread;
     pthread_create(&replay_thread, NULL, replay_attack_routine, &handle);
+#endif
 
+#ifdef ATTACK_FLOOD
     pthread_t flood_thread;
     pthread_create(&flood_thread, NULL, fake_ecu2_node, &handle);
-    */
+#endif
 
 #ifdef DelayMeasurement
     pthread_t delay_msrmnt_thread;
     pthread_create(&delay_msrmnt_thread, NULL, delay_msrmnt_routine, &handle);
 #endif
+
     pthread_t stop_thread;
     pthread_create(&stop_thread, NULL, stop_system_routine, NULL);
 
@@ -1400,17 +1425,23 @@ int main(int argc, char *argv[])
     pthread_join(abs_wheel_thread, NULL);
     pthread_join(sas_thread, NULL);
     pthread_join(receive_thd, NULL);
+
 #ifdef DelayMeasurement
     pthread_join(delay_msrmnt_thread, NULL);
 #endif
 #ifdef ATTACK_DOS
     pthread_join(attack_dos_thread, NULL);
 #endif
-    /*
+#ifdef ATTACK_FLOOD
+    pthread_join(flood_thread, NULL);
+#endif
+#ifdef ATTACK_FUZZ
     pthread_join(fuzz_thread, NULL);
+#endif
+#ifdef ATTACK_REPLAY
     pthread_join(replay_thread, NULL);
-    pthread_join(attack_tps_thread, NULL);
-    */
+#endif
+
     pthread_join(stop_thread, NULL);
 
     status = CAN_Close(handle);
