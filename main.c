@@ -1408,9 +1408,10 @@ int main(int argc, char *argv[])
     pthread_create(&delay_msrmnt_thread, NULL, delay_msrmnt_routine, &handle);
 #endif
 
+#ifdef STOP_THREAD
     pthread_t stop_thread;
     pthread_create(&stop_thread, NULL, stop_system_routine, NULL);
-
+#endif
     gui_status = g_application_run(G_APPLICATION(app), argc, argv);
 
     pthread_join(ecu_data1_thread, NULL);
@@ -1441,8 +1442,9 @@ int main(int argc, char *argv[])
 #ifdef ATTACK_REPLAY
     pthread_join(replay_thread, NULL);
 #endif
-
+#ifdef STOP_THREAD
     pthread_join(stop_thread, NULL);
+#endif
 
     status = CAN_Close(handle);
     printf("Test finish\n");

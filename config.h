@@ -5,6 +5,8 @@
 #define TXLOG
 #define RXLOG
 
+// Define for the thread stopping the simulation after 60seconds
+//#define STOP_THREAD
 // Define for activating the delay measurement routine, which send particular IDs to trigger an answer from fpga, allowing delay measurement on CANBus
 //#define DelayMeasurement
 
@@ -47,7 +49,7 @@
 // Defines for different attacks
 
 // Attack flood
-//#define ATTACK_FLOOD
+#define ATTACK_FLOOD
 // This attack is gonna send fake Throttle Position Sensor data, with a period corresponding to a fraction of the real node.
 // 3 modes : Fast which sends full speed all the time, slow which send 0 speed all the time, and OutOfBound which sends out of bound data to create an internal error.
 #define ATTACK_FAKE_TPS_PERIOD (float)ECU_DATA2_PERIOD/2
@@ -55,7 +57,7 @@
 
 // Attack DOS
 // This attack has for objective to DOS all lower priority messages. Most effective if Id = 1
-//#define ATTACK_DOS
+#define ATTACK_DOS
 #define ATTACK_DOS_PERIOD 1000
 #define ATTACK_DOS_ID 1
 
@@ -67,9 +69,9 @@
 
 // Attack replay
 // This attack stores the last sent message from SAS at the moment of activation, and sends it continuously.
-//#define ATTACK_REPLAY
+#define ATTACK_REPLAY
 #define ATTACK_REPLAY_PERIOD SAS_DATA_PERIOD
 
 // Attack Suspend
 // Suspend SAS Node (Id 0x180) (for 10 seconds from t=25s to t=35s if using prepared scenario and not GUI).
-//#define ATTACK_SUSPEND
+#define ATTACK_SUSPEND
